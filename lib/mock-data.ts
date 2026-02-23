@@ -1,4 +1,4 @@
-import type { StorePrice } from "@/components/ui/comparison-table"
+import type { StorePrice } from "@/components/comparison-table"
 
 export type ProductWithPrices = {
   id: string
