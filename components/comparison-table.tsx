@@ -135,7 +135,7 @@ export function ComparisonTable({ prices }: { prices: StorePrice[] }) {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{p.storeName}</span>
                         {isBest ? (
-                          <Badge variant="secondary">Mejor precio</Badge>
+                        <Badge className="bg-green-500 text-white hover:bg-green-600">Mejor precio</Badge>
                         ) : null}
                       </div>
                     </TableCell>
@@ -195,7 +195,7 @@ export function ComparisonTable({ prices }: { prices: StorePrice[] }) {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">{p.storeName}</CardTitle>
                   {isBest ? (
-                    <Badge variant="secondary">Mejor precio</Badge>
+                    <Badge className="bg-green-500 text-white hover:bg-green-600">Mejor precio</Badge>
                   ) : null}
                 </div>
               </CardHeader>
