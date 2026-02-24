@@ -10,9 +10,9 @@ import { CATEGORIES } from "@/lib/categories"
 export default function CategoryPage({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
-  const { slug } = params
+  const [slug, setSlug] = React.useState<string>("")
   const [products, setProducts] = React.useState<ProductRow[]>([])
   const [loading, setLoading] = React.useState(true)
 
@@ -20,8 +20,10 @@ export default function CategoryPage({
 
   React.useEffect(() => {
     ;(async () => {
+      const { slug: resolvedSlug } = await params
+      setSlug(resolvedSlug)
       try {
-        const data = await getProductsByCategory(slug)
+        const data = await getProductsByCategory(resolvedSlug)
         setProducts(data)
       } catch (e) {
         console.error(e)
@@ -29,7 +31,7 @@ export default function CategoryPage({
         setLoading(false)
       }
     })()
-  }, [slug])
+  }, [params])
 
   return (
     <div className="min-h-screen bg-background">
