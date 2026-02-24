@@ -1,36 +1,22 @@
 "use client"
 
 import Link from "next/link"
-import * as React from "react"
-import { Gamepad2, Search } from "lucide-react"
-import { Input } from "@/components/input"
+import { Gamepad2, Monitor, Cpu, HardDrive, MemoryStick, CircuitBoard, Box, Tv, Mouse } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/card"
-import { getProducts, type ProductRow } from "@/lib/db"
+import { CATEGORIES } from "@/lib/categories"
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  "tarjetas-de-video":  <Monitor className="size-6" />,
+  "procesadores":       <Cpu className="size-6" />,
+  "almacenamiento":     <HardDrive className="size-6" />,
+  "memorias-ram":       <MemoryStick className="size-6" />,
+  "placas-madre":       <CircuitBoard className="size-6" />,
+  "gabinetes":          <Box className="size-6" />,
+  "monitores":          <Tv className="size-6" />,
+  "perifericos":        <Mouse className="size-6" />,
+}
 
 export default function HomePage() {
-  const [q, setQ] = React.useState("")
-  const [products, setProducts] = React.useState<ProductRow[]>([])
-  const [loading, setLoading] = React.useState(true)
-
-  React.useEffect(() => {
-    ;(async () => {
-      try {
-        const data = await getProducts()
-        setProducts(data)
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [])
-
-  const results = React.useMemo(() => {
-    const s = q.trim().toLowerCase()
-    if (!s) return products
-    return products.filter((p) => p.name.toLowerCase().includes(s))
-  }, [q, products])
-
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-lg">
@@ -48,46 +34,30 @@ export default function HomePage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-6 lg:px-6 lg:py-8">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold">Buscar producto</h2>
+        <div className="flex flex-col gap-2 mb-6">
+          <h2 className="text-2xl font-bold">Categorías</h2>
           <p className="text-sm text-muted-foreground">
-            Elegí un producto para ver la comparación por tienda.
+            Elegí una categoría para ver los productos disponibles.
           </p>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 rounded-xl border bg-card p-4">
-          <Search className="size-4 text-muted-foreground" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Ej: RTX 4060, Ryzen 5 5600, SSD 1TB"
-          />
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {CATEGORIES.map((cat) => (
+            <Link key={cat.slug} href={`/categoria/${cat.slug}`}>
+              <Card className="transition hover:bg-muted/30 cursor-pointer h-full">
+                <CardHeader className="pb-2">
+                  <div className="text-muted-foreground mb-2">
+                    {CATEGORY_ICONS[cat.slug] ?? <Box className="size-6" />}
+                  </div>
+                  <CardTitle className="text-base">{cat.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs text-muted-foreground">
+                  Ver productos →
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
         </div>
-
-        {loading ? (
-          <div className="mt-6 text-sm text-muted-foreground">
-            Cargando productos…
-          </div>
-        ) : results.length === 0 ? (
-          <div className="mt-6 text-sm text-muted-foreground">
-            No se encontraron productos.
-          </div>
-        ) : (
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {results.slice(0, 12).map((p) => (
-              <Link key={p.id} href={`/producto/${p.id}`}>
-                <Card className="transition hover:bg-muted/30">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{p.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground">
-                    {p.category}
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
       </main>
     </div>
   )

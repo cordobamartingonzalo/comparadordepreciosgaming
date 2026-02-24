@@ -83,3 +83,14 @@ export async function getLatestPricesForProduct(productId: string) {
 
   return { product, prices: prices.filter(Boolean) }
 }
+
+export async function getProductsByCategory(slug: string): Promise<ProductRow[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id,name,category")
+    .eq("category", slug)
+
+  if (error) throw error
+
+  return data ?? []
+}
