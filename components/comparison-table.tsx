@@ -11,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/table"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/card"
 import { Switch } from "@/components/switch"
 import {
   Select,
@@ -68,27 +67,23 @@ export function ComparisonTable({ prices }: { prices: StorePrice[] }) {
     base.sort((a, b) => {
       if (sort === "priceAsc") return a.priceArs - b.priceArs
       if (sort === "priceDesc") return b.priceArs - a.priceArs
-      return (
-        new Date(b.updatedAtISO).getTime() - new Date(a.updatedAtISO).getTime()
-      )
+      return new Date(b.updatedAtISO).getTime() - new Date(a.updatedAtISO).getTime()
     })
     return base
   }, [prices, onlyInStock, sort])
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Controls */}
-      <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 md:flex-row md:items-center md:justify-between">
+
+      {/* ── Controls ── */}
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <Switch checked={onlyInStock} onCheckedChange={setOnlyInStock} />
           <div className="text-sm">
-            <div className="font-medium">Solo en stock</div>
-            <div className="text-xs text-muted-foreground">
-              Oculta tiendas sin stock
-            </div>
+            <div className="font-medium text-foreground">Solo en stock</div>
+            <div className="text-xs text-muted-foreground">Oculta tiendas sin stock</div>
           </div>
         </div>
-
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Ordenar por</span>
           <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
@@ -104,134 +99,144 @@ export function ComparisonTable({ prices }: { prices: StorePrice[] }) {
         </div>
       </div>
 
-      {/* Desktop */}
-      <div className="hidden md:block overflow-hidden rounded-xl border bg-background">
-        <div className="max-h-[520px] overflow-auto">
-          <Table>
-            <TableHeader className="sticky top-0 z-10 bg-background">
-              <TableRow>
-                <TableHead className="w-[260px]">Tienda</TableHead>
-                <TableHead>Precio</TableHead>
-                <TableHead>Envío</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Actualizado</TableHead>
-                <TableHead className="text-right"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((p) => {
-                const isBest =
-                  bestPrice?.storeId === p.storeId && p.inStock
-
-                return (
-                  <TableRow
-                    key={p.storeId}
-                    className={[
-                      "transition-colors hover:bg-muted/40",
-                      isBest ? "bg-muted/50" : "",
-                    ].join(" ")}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{p.storeName}</span>
-                        {isBest ? (
-                        <Badge className="bg-green-500 text-white hover:bg-green-600">Mejor precio</Badge>
-                        ) : null}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="font-semibold">
-                      {formatARS(p.priceArs)}
-                    </TableCell>
-
-                    <TableCell className="text-muted-foreground">
-                      {p.shippingLabel ?? "N/D"}
-                    </TableCell>
-
-                    <TableCell>
-                      {p.inStock ? (
-                        <Badge>En stock</Badge>
-                      ) : (
-                        <Badge variant="destructive">Sin stock</Badge>
+      {/* ── Desktop: tabla ── */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-white">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-50">
+              <TableHead className="w-[220px] font-semibold text-foreground">Tienda</TableHead>
+              <TableHead className="font-semibold text-foreground">Precio</TableHead>
+              <TableHead className="font-semibold text-foreground">Envío</TableHead>
+              <TableHead className="font-semibold text-foreground">Stock</TableHead>
+              <TableHead className="font-semibold text-foreground">Actualizado</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((p) => {
+              const isBest = bestPrice?.storeId === p.storeId && p.inStock
+              return (
+                <TableRow
+                  key={p.storeId}
+                  className={[
+                    "transition-colors hover:bg-gray-50",
+                    isBest ? "border-l-2 border-l-[#166534]" : "",
+                  ].join(" ")}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">{p.storeName}</span>
+                      {isBest && (
+                        <Badge className="bg-[#166534] text-white hover:bg-[#166534]">
+                          Mejor precio
+                        </Badge>
                       )}
-                    </TableCell>
-
-                    <TableCell className="text-muted-foreground">
-                      {relativeTimeFromISO(p.updatedAtISO)}
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      <Button asChild disabled={!p.inStock}>
-                        <a href={p.url} target="_blank" rel="noreferrer">
-                          Ir
-                        </a>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-
-              {!filtered.length ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                    No hay resultados con esos filtros.
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-lg font-bold ${isBest ? "text-[#166534]" : "text-foreground"}`}>
+                      {formatARS(p.priceArs)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {p.shippingLabel ?? "N/D"}
+                  </TableCell>
+                  <TableCell>
+                    {p.inStock ? (
+                      <Badge className="bg-[#166534] text-white hover:bg-[#166534]">En stock</Badge>
+                    ) : (
+                      <Badge variant="destructive">Sin stock</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {relativeTimeFromISO(p.updatedAtISO)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      asChild
+                      disabled={!p.inStock}
+                      className="bg-[#166534] text-white hover:bg-[#14532d]"
+                    >
+                      <a href={p.url} target="_blank" rel="noreferrer">
+                        Ir a la tienda
+                      </a>
+                    </Button>
                   </TableCell>
                 </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-        </div>
+              )
+            })}
+            {!filtered.length && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                  No hay resultados con esos filtros.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Mobile */}
-      <div className="md:hidden grid gap-3">
+      {/* ── Mobile: cards ── */}
+      <div className="md:hidden flex flex-col gap-3">
         {filtered.map((p) => {
-          const isBest =
-            bestPrice?.storeId === p.storeId && p.inStock
-
+          const isBest = bestPrice?.storeId === p.storeId && p.inStock
           return (
-            <Card key={p.storeId} className={isBest ? "bg-muted/40" : ""}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{p.storeName}</CardTitle>
-                  {isBest ? (
-                    <Badge className="bg-green-500 text-white hover:bg-green-600">Mejor precio</Badge>
-                  ) : null}
-                </div>
-              </CardHeader>
-              <CardContent className="grid gap-2">
-                <div className="flex items-baseline justify-between">
-                  <div className="text-lg font-semibold">
-                    {formatARS(p.priceArs)}
-                  </div>
-                  {p.inStock ? (
-                    <Badge>En stock</Badge>
-                  ) : (
-                    <Badge variant="destructive">Sin stock</Badge>
-                  )}
-                </div>
+            <div
+              key={p.storeId}
+              className={[
+                "rounded-xl border bg-white p-4 flex flex-col gap-3",
+                isBest ? "border-[#166534]" : "border-border",
+              ].join(" ")}
+            >
+              {/* Tienda + badge */}
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-foreground">{p.storeName}</span>
+                {isBest && (
+                  <Badge className="bg-[#166534] text-white hover:bg-[#166534]">
+                    Mejor precio
+                  </Badge>
+                )}
+              </div>
 
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Envío: {p.shippingLabel ?? "N/D"}</span>
-                  <span>{relativeTimeFromISO(p.updatedAtISO)}</span>
-                </div>
+              {/* Precio + stock */}
+              <div className="flex items-center justify-between">
+                <span className={`text-2xl font-extrabold ${isBest ? "text-[#166534]" : "text-foreground"}`}>
+                  {formatARS(p.priceArs)}
+                </span>
+                {p.inStock ? (
+                  <Badge className="bg-[#166534] text-white hover:bg-[#166534]">En stock</Badge>
+                ) : (
+                  <Badge variant="destructive">Sin stock</Badge>
+                )}
+              </div>
 
-                <Button asChild disabled={!p.inStock}>
-                  <a href={p.url} target="_blank" rel="noreferrer">
-                    Ir
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
+              {/* Envío + tiempo */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Envío: {p.shippingLabel ?? "N/D"}</span>
+                <span>{relativeTimeFromISO(p.updatedAtISO)}</span>
+              </div>
+
+              {/* Botón */}
+              <Button
+                asChild
+                disabled={!p.inStock}
+                className="w-full bg-[#166534] text-white hover:bg-[#14532d]"
+              >
+                <a href={p.url} target="_blank" rel="noreferrer">
+                  Ir a la tienda
+                </a>
+              </Button>
+            </div>
           )
         })}
 
-        {!filtered.length ? (
-          <div className="rounded-xl border bg-background p-6 text-center text-muted-foreground">
+        {!filtered.length && (
+          <div className="rounded-xl border border-border bg-white p-6 text-center text-sm text-muted-foreground">
             No hay resultados con esos filtros.
           </div>
-        ) : null}
+        )}
       </div>
+
     </div>
   )
 }
