@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import {
-  Gamepad2,
   Monitor,
   Cpu,
   HardDrive,
@@ -12,9 +11,12 @@ import {
   Tv,
   Mouse,
   ArrowRight,
+  Search,
 } from "lucide-react"
 import { CATEGORIES } from "@/lib/categories"
-import { Badge } from "@/components/badge"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
+import * as React from "react"
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "tarjetas-de-video": Monitor,
@@ -28,48 +30,71 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 }
 
 export default function HomePage() {
+  const [searchQuery, setSearchQuery] = React.useState("")
+
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
+      <Navbar />
 
-      {/* ── Navbar ── */}
-      <header className="sticky top-0 z-40 bg-[#111111]">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 lg:px-8">
-          <Link href="/" className="flex items-center gap-2">
-            <Gamepad2 className="size-5 text-white" />
-            <span className="text-base font-bold tracking-tight text-white">
-              Comparador Gaming
-            </span>
-          </Link>
-          <Badge className="bg-[#166534] text-white text-[10px] uppercase tracking-widest">
-            Argentina
-          </Badge>
-        </div>
-      </header>
+      {/* Hero Section with scanline/grid texture */}
+      <section
+        className="relative border-b-2 border-neon/30 bg-[#f8fafc]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, #22c55e10 1px, transparent 1px)",
+          backgroundSize: "20px 20px",
+        }}
+      >
+        <div className="mx-auto max-w-6xl px-4 py-12 lg:px-8 lg:py-20">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-3">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-neon">
+                {"// COMPARADOR DE PRECIOS"}
+              </span>
+              <h1 className="text-balance font-sans text-3xl font-bold uppercase tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+                COMPARA PRECIOS
+                <br />
+                <span className="text-neon">GAMING EN ARGENTINA</span>
+              </h1>
+              <p className="max-w-lg font-sans text-sm leading-relaxed text-muted-foreground lg:text-base">
+                Encontra el mejor precio entre Compragamer, Mexx, Fullhard y
+                Maximus Gaming.
+              </p>
+            </div>
 
-      {/* ── Hero ── */}
-      <section className="border-b border-border bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-10 lg:px-8 lg:py-16">
-          <h2 className="text-balance text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            Encontra el mejor precio para tu
-            <span className="text-[#166534]"> setup gaming</span>
-          </h2>
-          <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground lg:text-base">
-            Compara precios de hardware en las principales tiendas de Argentina. Actualizado constantemente.
-          </p>
+            {/* Search bar */}
+            <div className="flex max-w-xl items-center border-2 border-neon bg-card">
+              <div className="flex flex-1 items-center gap-2 px-3 py-2.5">
+                <Search className="size-4 shrink-0 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="BUSCAR PRODUCTO (EJ: RTX 4060, RYZEN 5)"
+                  className="w-full bg-transparent font-mono text-xs uppercase tracking-wider text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                />
+              </div>
+              <button className="flex h-full items-center bg-neon px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-neon-foreground transition-colors hover:bg-neon/90">
+                BUSCAR
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ── Categories ── */}
-      <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
-        <div className="mb-5 flex items-end justify-between">
+      {/* Categories Grid */}
+      <main className="mx-auto flex-1 w-full max-w-6xl px-4 py-8 lg:px-8 lg:py-12">
+        <div className="mb-6 flex items-end justify-between">
           <div>
-            <h3 className="text-base font-semibold text-foreground">Categorías</h3>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Seleccioná una categoría para explorar productos.
+            <span className="font-mono text-[11px] uppercase tracking-widest text-neon">
+              {"[ CATEGORIAS ]"}
+            </span>
+            <p className="mt-1 font-sans text-sm text-muted-foreground">
+              Selecciona una categoria para explorar productos.
             </p>
           </div>
-          <span className="hidden text-xs text-muted-foreground sm:block">
-            {CATEGORIES.length} categorías
+          <span className="hidden font-mono text-[10px] uppercase tracking-widest text-muted-foreground sm:block">
+            {CATEGORIES.length} categorias
           </span>
         </div>
 
@@ -77,16 +102,22 @@ export default function HomePage() {
           {CATEGORIES.map((cat) => {
             const Icon = CATEGORY_ICONS[cat.slug] ?? Box
             return (
-              <Link key={cat.slug} href={`/categoria/${cat.slug}`} className="group">
-                <div className="flex h-full flex-col gap-2 rounded-lg border border-border bg-card p-3 transition-all duration-150 hover:border-[#166534]/50 hover:shadow-sm sm:gap-3 sm:p-4">
-                  <div className="flex size-8 items-center justify-center rounded-md bg-[#f0fdf4] text-[#166534] sm:size-9">
-                    <Icon className="size-4 sm:size-5" />
+              <Link
+                key={cat.slug}
+                href={`/categoria/${cat.slug}`}
+                className="group"
+              >
+                <div className="flex h-full flex-col gap-3 border border-border bg-card p-4 transition-all duration-150 hover:border-neon hover:shadow-[0_0_12px_rgba(34,197,94,0.15)]">
+                  <div className="border-l-2 border-neon pl-3">
+                    <div className="flex size-9 items-center justify-center bg-neon/10 text-neon">
+                      <Icon className="size-5" />
+                    </div>
                   </div>
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="font-sans text-sm font-bold uppercase tracking-wide text-foreground">
                     {cat.name}
                   </span>
-                  <span className="mt-auto flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-[#166534]">
-                    Ver productos
+                  <span className="mt-auto flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors group-hover:text-neon">
+                    VER PRODUCTOS
                     <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </div>
@@ -96,37 +127,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* ── Footer ── */}
-      <footer className="bg-[#111111] text-white">
-        <div className="mx-auto max-w-6xl px-4 py-8 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <Gamepad2 className="size-4 text-white" />
-                <span className="text-sm font-bold">Comparador Gaming</span>
-              </div>
-              <p className="text-xs text-gray-400 max-w-xs">
-                Compará precios de hardware y periféricos gaming en las principales tiendas de Argentina.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Tiendas comparadas
-              </span>
-              <ul className="flex flex-col gap-1 text-xs text-gray-400">
-                <li>Compragamer</li>
-                <li>Mexx</li>
-                <li>Fullhard</li>
-                <li>Maximus Gaming</li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-6 border-t border-white/10 pt-4 text-xs text-gray-500">
-            Precios actualizados periódicamente. No nos hacemos responsables por errores de precios.
-          </div>
-        </div>
-      </footer>
-
+      <Footer />
     </div>
   )
 }

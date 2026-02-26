@@ -1,25 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Share_Tech_Mono, Rajdhani } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const shareTechMono = Share_Tech_Mono({
+  weight: "400",
+  variable: "--font-share-tech-mono",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const rajdhani = Rajdhani({
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-rajdhani",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Comparador Gaming Argentina",
+  title: "COMPARADOR GAMING AR | Precios de Hardware Gaming Argentina",
   description:
-    "Compara precios de hardware gaming en las mejores tiendas de Argentina.",
+    "Compara precios de hardware gaming en las mejores tiendas de Argentina. Compragamer, Mexx, Fullhard y Maximus Gaming.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#111111",
+  themeColor: "#0a0a0a",
   width: "device-width",
   initialScale: 1,
 };
@@ -32,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${shareTechMono.variable} ${rajdhani.variable} font-sans antialiased`}
       >
         {children}
       </body>

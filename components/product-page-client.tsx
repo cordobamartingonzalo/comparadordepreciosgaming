@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Gamepad2, ChevronLeft } from "lucide-react"
+import { ChevronLeft } from "lucide-react"
 import { ComparisonTable } from "@/components/comparison-table"
-import { Badge } from "@/components/badge"
 import { getLatestPricesForProduct } from "@/lib/db"
 import { CATEGORIES } from "@/lib/categories"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 
 type ProductWithPrices = {
   id: string
@@ -40,93 +41,68 @@ export function ProductPageClient({ productId }: { productId: string }) {
     })()
   }, [productId])
 
-  const categoryName = CATEGORIES.find(
-    (c) => c.slug === selectedProduct?.category
-  )?.name ?? selectedProduct?.category
+  const categoryName =
+    CATEGORIES.find((c) => c.slug === selectedProduct?.category)?.name ??
+    selectedProduct?.category
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
+      <Navbar />
 
-      {/* ── Navbar ── */}
-      <header className="sticky top-0 z-40 bg-[#111111]">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 lg:px-8">
-          <Link href="/" className="flex items-center gap-2">
-            <Gamepad2 className="size-5 text-white" />
-            <span className="text-base font-bold tracking-tight text-white">
-              Comparador Gaming
-            </span>
-          </Link>
-          <Badge className="bg-[#166534] text-white text-[10px] uppercase tracking-widest">
-            Argentina
-          </Badge>
-        </div>
-      </header>
-
-      {/* ── Product Hero ── */}
-      <section className="border-b border-border bg-white">
+      {/* Product Hero */}
+      <section
+        className="border-b-2 border-neon/30 bg-[#f8fafc]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, #22c55e10 1px, transparent 1px)",
+          backgroundSize: "20px 20px",
+        }}
+      >
         <div className="mx-auto max-w-6xl px-4 py-8 lg:px-8 lg:py-12">
           <Link
-            href={selectedProduct ? `/categoria/${selectedProduct.category}` : "/"}
-            className="mb-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-[#166534] w-fit transition-colors"
+            href={
+              selectedProduct
+                ? `/categoria/${selectedProduct.category}`
+                : "/"
+            }
+            className="mb-4 flex w-fit items-center gap-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-neon"
           >
             <ChevronLeft className="size-4" />
-            {categoryName ? `Volver a ${categoryName}` : "Volver"}
+            {categoryName ? `VOLVER A ${categoryName.toUpperCase()}` : "VOLVER"}
           </Link>
           <div>
-            <h2 className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl">
-              {loading ? "Cargando..." : selectedProduct?.name ?? "Producto no encontrado"}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Comparativa de precios en las principales tiendas de Argentina.
+            <span className="font-mono text-[11px] uppercase tracking-widest text-neon">
+              {"// COMPARACION DE PRECIOS"}
+            </span>
+            <h1 className="mt-1 font-sans text-xl font-bold uppercase tracking-tight text-foreground sm:text-2xl">
+              {loading
+                ? "CARGANDO..."
+                : selectedProduct?.name ?? "PRODUCTO NO ENCONTRADO"}
+            </h1>
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              COMPARATIVA ENTRE LAS PRINCIPALES TIENDAS DE ARGENTINA
             </p>
           </div>
         </div>
       </section>
 
-      {/* ── Comparison Table ── */}
-      <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
+      {/* Comparison Table */}
+      <main className="mx-auto flex-1 w-full max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
         {loading ? (
-          <div className="text-sm text-muted-foreground">Cargando precios…</div>
+          <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            <span className="inline-block size-2 animate-pulse bg-neon" />
+            CARGANDO PRECIOS...
+          </div>
         ) : selectedProduct ? (
           <ComparisonTable prices={selectedProduct.prices} />
         ) : (
-          <div className="text-sm text-muted-foreground">
-            No se encontró el producto.
+          <div className="border border-dashed border-border p-10 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            NO SE ENCONTRO EL PRODUCTO
           </div>
         )}
       </main>
 
-      {/* ── Footer ── */}
-      <footer className="bg-[#111111] text-white">
-        <div className="mx-auto max-w-6xl px-4 py-8 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <Gamepad2 className="size-4 text-white" />
-                <span className="text-sm font-bold">Comparador Gaming</span>
-              </div>
-              <p className="text-xs text-gray-400 max-w-xs">
-                Compará precios de hardware y periféricos gaming en las principales tiendas de Argentina.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Tiendas comparadas
-              </span>
-              <ul className="flex flex-col gap-1 text-xs text-gray-400">
-                <li>Compragamer</li>
-                <li>Mexx</li>
-                <li>Fullhard</li>
-                <li>Maximus Gaming</li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-6 border-t border-white/10 pt-4 text-xs text-gray-500">
-            Precios actualizados periódicamente. No nos hacemos responsables por errores de precios.
-          </div>
-        </div>
-      </footer>
-
+      <Footer />
     </div>
   )
 }
