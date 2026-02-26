@@ -12,6 +12,7 @@ import {
   Tv,
   Mouse,
   ArrowRight,
+  Search,
 } from "lucide-react"
 import { CATEGORIES } from "@/lib/categories"
 import { Badge } from "@/components/badge"
@@ -31,47 +32,74 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* ── Navbar ── */}
-      <header className="sticky top-0 z-40 bg-[#111111]">
+      <header className="sticky top-0 z-40 border-b-2 border-neon bg-[#0f172a]">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 lg:px-8">
-          <Link href="/" className="flex items-center gap-2">
-            <Gamepad2 className="size-5 text-white" />
-            <span className="text-base font-bold tracking-tight text-white">
-              Comparador Gaming
+          <Link href="/" className="flex items-center gap-2.5">
+            <Gamepad2 className="size-5 text-neon" />
+            <span className="font-mono text-sm font-bold uppercase tracking-widest text-white">
+              COMPARADOR GAMING
             </span>
           </Link>
-          <Badge className="rounded-md bg-[#166534] text-white text-[10px] uppercase tracking-widest border-transparent hover:bg-[#166534]">
-            Argentina
+          <Badge className="rounded-sm border-neon bg-neon text-neon-foreground text-[10px] font-mono uppercase tracking-widest hover:bg-neon/90">
+            ARGENTINA
           </Badge>
         </div>
       </header>
 
-      {/* ── Hero ── */}
-      <section className="bg-card border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-10 lg:px-8 lg:py-14">
-          <h2 className="text-balance text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            {"Encontra el mejor precio para tu"}
-            <span className="text-[#166534]">{" setup gaming"}</span>
+      {/* ── Hero with scanline texture ── */}
+      <section className="relative overflow-hidden border-b-2 border-neon/30 bg-[#0f172a]">
+        {/* Scanline overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(0deg, transparent, transparent 2px, #22c55e 2px, #22c55e 4px)",
+          }}
+        />
+        {/* Dot grid pattern */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage: "radial-gradient(#22c55e 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }}
+        />
+
+        <div className="relative mx-auto max-w-6xl px-4 py-12 lg:px-8 lg:py-20">
+          <h2 className="font-mono text-2xl font-bold uppercase tracking-widest text-white sm:text-3xl lg:text-4xl">
+            {"COMPARA PRECIOS GAMING"}
+            <br />
+            <span className="text-neon">{"EN ARGENTINA"}</span>
           </h2>
-          <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground lg:text-base">
-            Compara precios de hardware en las principales tiendas de Argentina.
-            Actualizado constantemente.
+          <p className="mt-4 max-w-lg font-mono text-sm leading-relaxed tracking-wide text-slate-400">
+            {"// Encontra el mejor precio entre Compragamer, Mexx, Fullhard y Maximus Gaming."}
           </p>
+
+          {/* Search bar placeholder */}
+          <div className="mt-8 flex max-w-xl items-stretch">
+            <div className="flex flex-1 items-center gap-2 border-2 border-neon/40 bg-[#1e293b] px-4 py-3">
+              <Search className="size-4 text-slate-500" />
+              <span className="font-mono text-sm text-slate-500">
+                {"// BUSCAR PRODUCTO..."}
+              </span>
+            </div>
+            <button className="flex items-center gap-2 bg-neon px-5 font-mono text-sm font-bold uppercase tracking-widest text-neon-foreground transition-colors hover:bg-neon/90">
+              BUSCAR
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* ── Categories ── */}
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8 lg:py-10">
-        <div className="mb-5 flex items-end justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-foreground">
-              Categorias
-            </h3>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Selecciona una categoria para explorar productos.
-            </p>
-          </div>
-          <span className="hidden text-xs text-muted-foreground sm:block">
-            {CATEGORIES.length} categorias
+      {/* ── Categories grid ── */}
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8 lg:py-12">
+        {/* Terminal-style section label */}
+        <div className="mb-6 flex items-center gap-3">
+          <span className="font-mono text-xs font-bold uppercase tracking-widest text-neon">
+            {"[ CATEGORIAS ]"}
+          </span>
+          <div className="h-px flex-1 bg-border" />
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            {CATEGORIES.length} items
           </span>
         </div>
 
@@ -84,20 +112,23 @@ export default function HomePage() {
                 href={`/categoria/${cat.slug}`}
                 className="group"
               >
-                <div className="flex h-full flex-col gap-2 rounded-lg border border-border bg-card p-3 transition-all duration-150 hover:border-[#166534] hover:shadow-sm sm:gap-3 sm:p-4">
+                <div className="relative flex h-full flex-col gap-3 border border-border bg-card p-3 transition-all duration-150 hover:border-neon hover:shadow-[0_0_16px_-4px] hover:shadow-neon/30 sm:p-4">
+                  {/* Neon left border accent */}
+                  <div className="absolute left-0 top-0 h-full w-0.5 bg-neon/40 transition-colors group-hover:bg-neon" />
+
                   {/* Icon */}
-                  <div className="flex size-8 items-center justify-center rounded-md bg-[#f0fdf4] text-[#166534] sm:size-9">
+                  <div className="flex size-8 items-center justify-center border border-neon/30 bg-neon/10 text-neon sm:size-9">
                     <Icon className="size-4 sm:size-5" />
                   </div>
 
                   {/* Name */}
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="font-mono text-xs font-bold uppercase tracking-widest text-foreground sm:text-sm">
                     {cat.name}
                   </span>
 
                   {/* CTA */}
-                  <span className="mt-auto flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-[#166534]">
-                    Ver productos
+                  <span className="mt-auto flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors group-hover:text-neon sm:text-xs">
+                    VER PRODUCTOS
                     <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </div>
@@ -108,35 +139,29 @@ export default function HomePage() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="bg-[#111111]">
+      <footer className="border-t-2 border-neon bg-[#0f172a]">
         <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:grid-cols-2 lg:px-8">
-          {/* Left column */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <Gamepad2 className="size-4 text-white" />
-              <span className="text-sm font-bold text-white">
-                Comparador Gaming
+              <Gamepad2 className="size-4 text-neon" />
+              <span className="font-mono text-sm font-bold uppercase tracking-widest text-white">
+                COMPARADOR GAMING
               </span>
             </div>
-            <p className="max-w-xs text-xs leading-relaxed text-[#9ca3af]">
-              Compara precios de hardware gaming en las mejores tiendas online
-              de Argentina. Encontra las mejores ofertas al instante.
+            <p className="max-w-xs font-mono text-xs leading-relaxed tracking-wide text-slate-500">
+              {"// Compara precios de hardware gaming en las mejores tiendas online de Argentina."}
             </p>
           </div>
 
-          {/* Right column */}
-          <div className="flex flex-col gap-2 sm:items-end sm:text-right">
-            <span className="text-xs text-[#9ca3af]">
-              Precios actualizados periodicamente
-            </span>
-            <span className="text-xs text-[#9ca3af]">
-              Tiendas comparadas:
+          <div className="flex flex-col gap-3 sm:items-end">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-neon">
+              {"[ TIENDAS COMPARADAS ]"}
             </span>
             <div className="flex flex-wrap gap-2 sm:justify-end">
-              {["Compragamer", "Mexx", "Fullhard", "Maximus"].map((store) => (
+              {["COMPRAGAMER", "MEXX", "FULLHARD", "MAXIMUS"].map((store) => (
                 <span
                   key={store}
-                  className="rounded bg-[#1f2937] px-2 py-0.5 text-[11px] font-medium text-[#d1d5db]"
+                  className="border border-slate-700 bg-slate-800 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-300"
                 >
                   {store}
                 </span>
@@ -145,11 +170,10 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bottom line */}
-        <div className="border-t border-[#1f2937]">
+        <div className="border-t border-slate-800">
           <div className="mx-auto max-w-6xl px-4 py-4 lg:px-8">
-            <span className="text-[11px] text-[#6b7280]">
-              Comparador Gaming Argentina. Los precios son orientativos.
+            <span className="font-mono text-[10px] tracking-widest text-slate-600">
+              {"// COMPARADOR GAMING AR — PRECIOS ORIENTATIVOS"}
             </span>
           </div>
         </div>
