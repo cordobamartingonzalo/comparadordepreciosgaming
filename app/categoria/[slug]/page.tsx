@@ -95,7 +95,7 @@ export default function CategoryPage({
               <h2 className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl">
                 {categoryName}
               </h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground/60">
                 Elegí un producto para comparar precios entre tiendas.
               </p>
             </div>
@@ -106,11 +106,11 @@ export default function CategoryPage({
       {/* ── Products ── */}
       <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
         {loading ? (
-          <div className="text-sm text-muted-foreground">Cargando productos…</div>
+          <div className="text-sm text-foreground/60">Cargando productos…</div>
         ) : products.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
             <PackageOpen className="size-10 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground/60">
               No hay productos disponibles en esta categoría aún.
             </p>
           </div>
@@ -142,7 +142,7 @@ export default function CategoryPage({
                 <Gamepad2 className="size-4 text-white" />
                 <span className="text-sm font-bold">Comparador Gaming</span>
               </div>
-              <p className="text-xs text-gray-400 max-w-xs">
+              <p className="text-xs text-gray-300 font-medium max-w-xs">
                 Compará precios de hardware y periféricos gaming en las principales tiendas de Argentina.
               </p>
             </div>
@@ -150,7 +150,7 @@ export default function CategoryPage({
               <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
                 Tiendas comparadas
               </span>
-              <ul className="flex flex-col gap-1 text-xs text-gray-400">
+              <ul className="flex flex-col gap-1 text-xs text-gray-300 font-medium">
                 <li>Compragamer</li>
                 <li>Mexx</li>
                 <li>Fullhard</li>
@@ -158,7 +158,7 @@ export default function CategoryPage({
               </ul>
             </div>
           </div>
-          <div className="mt-6 border-t border-white/10 pt-4 text-xs text-gray-500">
+          <div className="mt-6 border-t border-white/10 pt-4 text-xs text-gray-400">
             Precios actualizados periódicamente. No nos hacemos responsables por errores de precios.
           </div>
         </div>

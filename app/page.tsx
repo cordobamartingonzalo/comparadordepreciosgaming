@@ -53,7 +53,7 @@ export default function HomePage() {
             Encontra el mejor precio para tu
             <span className="text-[#166534]"> setup gaming</span>
           </h2>
-          <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground lg:text-base">
+          <p className="mt-3 max-w-lg text-sm leading-relaxed text-foreground/75 font-medium lg:text-base">
             Compara precios de hardware en las principales tiendas de Argentina. Actualizado constantemente.
           </p>
         </div>
@@ -64,7 +64,7 @@ export default function HomePage() {
         <div className="mb-5 flex items-end justify-between">
           <div>
             <h3 className="text-base font-semibold text-foreground">Categorías</h3>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <p className="mt-0.5 text-sm text-foreground/75 font-medium">
               Seleccioná una categoría para explorar productos.
             </p>
           </div>
@@ -85,7 +85,7 @@ export default function HomePage() {
                   <span className="text-sm font-semibold text-foreground">
                     {cat.name}
                   </span>
-                  <span className="mt-auto flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-[#166534]">
+                  <span className="mt-auto flex items-center gap-1 text-xs text-foreground/60 transition-colors group-hover:text-[#166534]">
                     Ver productos
                     <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </span>
@@ -105,7 +105,7 @@ export default function HomePage() {
                 <Gamepad2 className="size-4 text-white" />
                 <span className="text-sm font-bold">Comparador Gaming</span>
               </div>
-              <p className="text-xs text-gray-400 max-w-xs">
+              <p className="text-xs text-gray-300 font-medium max-w-xs">
                 Compará precios de hardware y periféricos gaming en las principales tiendas de Argentina.
               </p>
             </div>
@@ -113,7 +113,7 @@ export default function HomePage() {
               <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
                 Tiendas comparadas
               </span>
-              <ul className="flex flex-col gap-1 text-xs text-gray-400">
+              <ul className="flex flex-col gap-1 text-xs text-gray-300 font-medium">
                 <li>Compragamer</li>
                 <li>Mexx</li>
                 <li>Fullhard</li>
@@ -121,7 +121,7 @@ export default function HomePage() {
               </ul>
             </div>
           </div>
-          <div className="mt-6 border-t border-white/10 pt-4 text-xs text-gray-500">
+          <div className="mt-6 border-t border-white/10 pt-4 text-xs text-gray-400">
             Precios actualizados periódicamente. No nos hacemos responsables por errores de precios.
           </div>
         </div>
