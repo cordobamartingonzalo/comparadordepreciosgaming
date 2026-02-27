@@ -94,3 +94,15 @@ export async function getProductsByCategory(slug: string): Promise<ProductRow[]>
 
   return data ?? []
 }
+
+export async function searchProducts(query: string): Promise<ProductRow[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id,name,category")
+    .ilike("name", `%${query}%`)
+    .limit(8)
+
+  if (error) throw error
+
+  return data ?? []
+}

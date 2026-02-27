@@ -11,11 +11,11 @@ import {
   Tv,
   Mouse,
   ArrowRight,
-  Search,
 } from "lucide-react"
 import { CATEGORIES } from "@/lib/categories"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
+import { SearchBox } from "@/components/search-box"
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "tarjetas-de-video": Monitor,
@@ -54,20 +54,7 @@ export default function HomePage() {
             Compará precios de hardware en las principales tiendas de Argentina. Actualizado constantemente.
           </p>
 
-          {/* Neon search bar */}
-          <div className="mt-6 flex max-w-md items-center border border-[#22c55e] bg-white shadow-[0_0_16px_#22c55e20]">
-            <div className="flex items-center px-3 text-[#22c55e]">
-              <Search className="size-4" />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar producto... (ej: RTX 4060)"
-              className="flex-1 py-2.5 pr-3 text-sm font-medium bg-transparent text-foreground placeholder:text-foreground/40 outline-none font-mono"
-            />
-            <div className="px-3 py-2.5 bg-[#22c55e] text-[#0a0a0a] text-xs font-mono font-bold tracking-widest uppercase select-none">
-              BUSCAR
-            </div>
-          </div>
+          <SearchBox />
         </div>
       </section>
 
