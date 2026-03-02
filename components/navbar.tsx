@@ -8,7 +8,7 @@ export function Navbar() {
         <Link href="/" className="flex items-center gap-2 group">
           <Gamepad2 className="size-5 text-[#22c55e]" />
           <span className="font-mono text-sm font-bold tracking-widest uppercase text-white group-hover:text-[#22c55e] transition-colors">
-            COMPARADOR_GAMING
+            PRECIOS_GG
           </span>
         </Link>
         <div className="ml-1 px-2 py-0.5 border border-[#22c55e]/40 text-[10px] font-mono tracking-widest uppercase text-[#22c55e]">

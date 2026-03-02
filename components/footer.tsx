@@ -9,11 +9,11 @@ export function Footer() {
             <div className="flex items-center gap-2">
               <Gamepad2 className="size-4 text-[#22c55e]" />
               <span className="font-mono text-sm font-bold tracking-widest uppercase text-white">
-                COMPARADOR_GAMING
+                PRECIOS_GG
               </span>
             </div>
             <p className="text-xs text-gray-300 font-medium max-w-xs leading-relaxed">
-              Compará precios de hardware y periféricos gaming en las principales tiendas de Argentina.
+              Compará precios de hardware gaming en las principales tiendas de Argentina. Encontrá la mejor oferta en Compragamer, Mexx, Fullhard, Maximus y Venex.
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -25,6 +25,7 @@ export function Footer() {
               <li>Mexx</li>
               <li>Fullhard</li>
               <li>Maximus Gaming</li>
+              <li>Venex</li>
             </ul>
           </div>
         </div>
