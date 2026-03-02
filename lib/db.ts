@@ -15,7 +15,7 @@ export type ProductRow = {
 export async function getProducts(): Promise<ProductRow[]> {
   const { data, error } = await supabase
     .from("products")
-    .select("id,name,category")
+    .select("id,name,category,image_url")
 
   if (error) throw error
 
@@ -28,7 +28,7 @@ export async function getLatestPricesForProduct(productId: string) {
 
   const { data: productData, error: productErr } = await supabase
     .from("products")
-    .select("id,name,category")
+    .select("id,name,category,image_url")
     .eq("id", productId)
 
   if (productErr) throw productErr
@@ -99,7 +99,7 @@ export async function getProductsByCategory(slug: string): Promise<ProductRow[]>
 export async function searchProducts(query: string): Promise<ProductRow[]> {
   const { data, error } = await supabase
     .from("products")
-    .select("id,name,category")
+    .select("id,name,category,image_url")
     .ilike("name", `%${query}%`)
     .limit(8)
 
