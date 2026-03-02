@@ -16,6 +16,12 @@ type CategoryConfig = {
   storeId: string
 }
 
+// ─── Test mode ────────────────────────────────────────────────────────────────
+// Ejecutar con: npx tsx scripts/catalog-scraper.ts --test
+// Sólo procesa los 3 primeros productos de compragamer para validar imágenes.
+
+const TEST_MODE = process.argv.includes("--test")
+
 // ─── Stats ────────────────────────────────────────────────────────────────────
 
 const stats = {
@@ -23,6 +29,7 @@ const stats = {
   inserted: 0,
   skipped: 0,
   errors: 0,
+  images_saved: 0,
 }
 
 // ─── Category URLs ────────────────────────────────────────────────────────────
@@ -213,7 +220,7 @@ function generateId(normalizedName: string, category: string): string {
  * "name" del elemento o en un hijo h2/h3.
  */
 async function scrapeCompragamer(page: Page, config: CategoryConfig): Promise<RawProduct[]> {
-  await page.goto(config.url, { waitUntil: "networkidle", timeout: 40_000 })
+  await page.goto(config.url, { waitUntil: "domcontentloaded", timeout: 90_000 })
   await page.waitForSelector("cgw-product-card", { timeout: 15_000 }).catch(() => {
     console.warn("  [warn] No se encontraron cgw-product-card")
   })
@@ -246,7 +253,7 @@ async function scrapeCompragamer(page: Page, config: CategoryConfig): Promise<Ra
  * Se desduplicará por href (imagen + título comparten el mismo link).
  */
 async function scrapeMexx(page: Page, config: CategoryConfig): Promise<RawProduct[]> {
-  await page.goto(config.url, { waitUntil: "networkidle", timeout: 40_000 })
+  await page.goto(config.url, { waitUntil: "networkidle", timeout: 90_000 })
 
   const products = await page.evaluate(() => {
     const seen = new Set<string>()
@@ -277,7 +284,7 @@ async function scrapeMexx(page: Page, config: CategoryConfig): Promise<RawProduc
  * El texto del link incluye el nombre + precio; se limpia eliminando el precio.
  */
 async function scrapeFullhard(page: Page, config: CategoryConfig): Promise<RawProduct[]> {
-  await page.goto(config.url, { waitUntil: "networkidle", timeout: 40_000 })
+  await page.goto(config.url, { waitUntil: "networkidle", timeout: 90_000 })
 
   const products = await page.evaluate(() => {
     const seen = new Set<string>()
@@ -316,7 +323,7 @@ async function scrapeFullhard(page: Page, config: CategoryConfig): Promise<RawPr
  * URL ejemplo: /Producto/Placa-de-Video-Gigabyte-Rx-7600-GAMING-OC-8GB-GDDR6/ITEM=13714/maximus.aspx
  */
 async function scrapeMaximus(page: Page, config: CategoryConfig): Promise<RawProduct[]> {
-  await page.goto(config.url, { waitUntil: "networkidle", timeout: 40_000 })
+  await page.goto(config.url, { waitUntil: "networkidle", timeout: 90_000 })
   // Esperar que la grilla de productos cargue
   await page.waitForTimeout(2000)
 
@@ -354,7 +361,7 @@ async function scrapeMaximus(page: Page, config: CategoryConfig): Promise<RawPro
  * El texto del link es el nombre completo del producto.
  */
 async function scrapeVenex(page: Page, config: CategoryConfig): Promise<RawProduct[]> {
-  await page.goto(config.url, { waitUntil: "networkidle", timeout: 40_000 })
+  await page.goto(config.url, { waitUntil: "networkidle", timeout: 90_000 })
 
   const products = await page.evaluate(() => {
     const anchors = Array.from(
@@ -373,13 +380,130 @@ async function scrapeVenex(page: Page, config: CategoryConfig): Promise<RawProdu
 // ─── Store dispatcher ─────────────────────────────────────────────────────────
 
 async function scrapeCategory(browser: Browser, config: CategoryConfig): Promise<RawProduct[]> {
-  const page = await browser.newPage()
-
   // Bloquear solo imágenes y media; mantener scripts y CSS
   // (Mexx y Maximus necesitan JS para renderizar)
+  async function doScrape(): Promise<RawProduct[]> {
+    const page = await browser.newPage()
+    await page.route("**/*", (route) => {
+      const type = route.request().resourceType()
+      if (["image", "media"].includes(type)) {
+        route.abort()
+      } else {
+        route.continue()
+      }
+    })
+    try {
+      switch (config.storeId) {
+        case "compragamer":    return await scrapeCompragamer(page, config)
+        case "mexx":           return await scrapeMexx(page, config)
+        case "fullhard":       return await scrapeFullhard(page, config)
+        case "maximusgaming":  return await scrapeMaximus(page, config)
+        case "venex":          return await scrapeVenex(page, config)
+        default:
+          console.warn(`  [warn] Sin scraper para store_id="${config.storeId}"`)
+          return []
+      }
+    } finally {
+      await page.close()
+    }
+  }
+
+  try {
+    return await doScrape()
+  } catch (firstErr) {
+    console.warn(`  [retry] Primer intento fallido: ${(firstErr as Error).message.substring(0, 80)}`)
+    console.warn(`  [retry] Esperando 5s antes de reintentar...`)
+    await new Promise((r) => setTimeout(r, 5_000))
+    return await doScrape()
+  }
+}
+
+// ─── Image extraction ─────────────────────────────────────────────────────────
+
+/**
+ * Selectores CSS por tienda para la imagen principal del producto.
+ * Se prueban en orden; se usa el primero que retorne una URL válida.
+ */
+const IMAGE_SELECTORS: Record<string, string[]> = {
+  compragamer: [
+    // Web Components — Playwright los penetra automáticamente con locator()
+    "cgw-product-gallery img",
+    "cgw-product-detail img",
+    "cgw-gallery img",
+    ".product-gallery img",
+    "img[class*='product']",
+    "picture img",
+  ],
+  mexx: [
+    "img#imgprincipal",
+    ".foto-producto img",
+    ".product-foto img",
+    ".detalle-producto img",
+    "img.img-fluid[src*='productos']",
+    "img.img-fluid[src*='upload']",
+  ],
+  fullhard: [
+    "img.product-image",
+    ".product-img img",
+    ".product__img img",
+    "img[src*='/prod/']",
+    ".gallery img:first-child",
+    "img[src*='productos']",
+  ],
+  maximusgaming: [
+    "img#imgProducto",
+    "img[id*='Producto']",
+    "img[id*='img']",
+    ".product-detail img",
+    "img[class*='product']",
+    "img[src*='Producto']",
+  ],
+  venex: [
+    "img.product-image",
+    ".product-detail-image img",
+    ".product-gallery img",
+    "img[src*='product']",
+    "img[class*='main']",
+    "img[src*='upload']",
+  ],
+}
+
+/** Convierte una URL relativa en absoluta usando la URL base del producto. */
+function toAbsoluteUrl(src: string, base: string): string | null {
+  if (!src) return null
+  try {
+    return new URL(src, base).href
+  } catch {
+    return null
+  }
+}
+
+/** Descarta imágenes que claramente no son del producto. */
+function isValidProductImage(src: string): boolean {
+  if (!src || src.startsWith("data:")) return false
+  if (/\.(svg|gif)(\?|$)/i.test(src)) return false
+  if (/placeholder|logo|icon|pixel|spinner|tracking|banner|stat|blank/i.test(src)) return false
+  return true
+}
+
+/**
+ * Visita la página del producto y extrae la URL de su imagen principal.
+ * Crea una página nueva (sin bloqueo de imágenes) para obtener los src attributes.
+ * Retorna null si no encuentra ninguna imagen válida.
+ */
+async function fetchProductImage(
+  browser: Browser,
+  storeId: string,
+  productUrl: string
+): Promise<string | null> {
+  const page = await browser.newPage()
+
+  // No bloquear imágenes en páginas de detalle: algunos sitios sólo
+  // populan img.src tras la carga (lazy loading nativo o IntersectionObserver).
+  // Sí bloqueamos media pesada y fuentes para ir más rápido.
   await page.route("**/*", (route) => {
     const type = route.request().resourceType()
-    if (["image", "media"].includes(type)) {
+    if (["media", "font"].includes(type)) {
       route.abort()
     } else {
       route.continue()
@@ -387,16 +511,81 @@ async function scrapeCategory(browser: Browser, config: CategoryConfig): Promise
   })
 
   try {
-    switch (config.storeId) {
-      case "compragamer":    return await scrapeCompragamer(page, config)
-      case "mexx":           return await scrapeMexx(page, config)
-      case "fullhard":       return await scrapeFullhard(page, config)
-      case "maximusgaming":  return await scrapeMaximus(page, config)
-      case "venex":          return await scrapeVenex(page, config)
-      default:
-        console.warn(`  [warn] Sin scraper para store_id="${config.storeId}"`)
-        return []
+    const waitUntil = ["compragamer", "maximusgaming"].includes(storeId)
+      ? "networkidle"
+      : "domcontentloaded"
+
+    await page.goto(productUrl, { waitUntil, timeout: 35_000 })
+
+    // Maximus necesita un poco más de tiempo para hidratar la imagen
+    if (storeId === "maximusgaming") {
+      await page.waitForTimeout(1500)
     }
+
+    const selectors = IMAGE_SELECTORS[storeId] ?? []
+
+    // 1. Probar selectores específicos de la tienda
+    //    Playwright's locator() penetra Shadow DOM automáticamente (útil para Compragamer)
+    for (const selector of selectors) {
+      try {
+        const loc = page.locator(selector).first()
+        const src =
+          (await loc.getAttribute("src")) ??
+          (await loc.getAttribute("data-src")) ??
+          (await loc.getAttribute("data-lazy-src")) ??
+          (await loc.getAttribute("data-original"))
+
+        if (src && isValidProductImage(src)) {
+          const abs = toAbsoluteUrl(src, productUrl)
+          if (abs) return abs
+        }
+      } catch {
+        // El selector no existió en esta página; continuar
+      }
+    }
+
+    // 2. Fallback: recorrer todo el DOM (incluyendo Shadow DOM) buscando
+    //    la primera imagen que parezca de producto (URL con dígitos o palabras clave)
+    const fallback = await page.evaluate((baseUrl: string) => {
+      // Función recursiva que penetra Shadow DOM
+      function collectImages(root: Element | ShadowRoot): string[] {
+        const imgs: string[] = []
+        for (const el of Array.from(root.querySelectorAll("img"))) {
+          const src =
+            el.getAttribute("src") ||
+            el.getAttribute("data-src") ||
+            el.getAttribute("data-lazy-src") ||
+            el.getAttribute("data-original") ||
+            ""
+          if (src) imgs.push(src)
+        }
+        for (const el of Array.from(root.querySelectorAll("*"))) {
+          if ((el as HTMLElement & { shadowRoot: ShadowRoot | null }).shadowRoot) {
+            imgs.push(...collectImages((el as HTMLElement & { shadowRoot: ShadowRoot }).shadowRoot))
+          }
+        }
+        return imgs
+      }
+
+      const allSrcs = collectImages(document.documentElement)
+      for (const src of allSrcs) {
+        if (!src || src.startsWith("data:")) continue
+        if (/\.(svg|gif)(\?|$)/i.test(src)) continue
+        if (/placeholder|logo|icon|pixel|spinner|tracking|banner|stat|blank/i.test(src)) continue
+        // Priorizar imágenes con dígitos en la ruta (IDs de producto) o palabras clave
+        if (/\d{3,}/.test(src) || /product|imagen|upload|img/i.test(src)) {
+          try { return new URL(src, baseUrl).href } catch { /* noop */ }
+        }
+      }
+      return null
+    }, productUrl)
+
+    return fallback ?? null
+  } catch (err) {
+    console.warn(
+      `  [img] Error visitando ${productUrl}: ${(err as Error).message.substring(0, 80)}`
+    )
+    return null
   } finally {
     await page.close()
   }
@@ -404,22 +593,40 @@ async function scrapeCategory(browser: Browser, config: CategoryConfig): Promise
 
 // ─── DB upsert (safe: nunca modifica ni borra) ────────────────────────────────
 
+/**
+ * Inserta el producto si no existe.
+ * Retorna:
+ *   - "inserted"     → producto nuevo (siempre necesita imagen)
+ *   - "existing"     → ya existía y ya tiene image_url (no tocar)
+ *   - "needs_image"  → ya existía pero image_url está vacío
+ */
 async function upsertProduct(product: {
   id: string
   name: string
   category: string
-}): Promise<"inserted" | "existing"> {
+}): Promise<"inserted" | "existing" | "needs_image"> {
   const { data: existing } = await supabase
     .from("products")
-    .select("id")
+    .select("id, image_url")
     .eq("id", product.id)
     .maybeSingle()
 
-  if (existing) return "existing"
+  if (existing) {
+    return existing.image_url ? "existing" : "needs_image"
+  }
 
   const { error } = await supabase.from("products").insert(product)
   if (error) throw new Error(`products insert: ${error.message}`)
   return "inserted"
+}
+
+/** Actualiza image_url de un producto existente. */
+async function updateProductImageUrl(productId: string, imageUrl: string): Promise<void> {
+  const { error } = await supabase
+    .from("products")
+    .update({ image_url: imageUrl })
+    .eq("id", productId)
+  if (error) throw new Error(`products update image_url: ${error.message}`)
 }
 
 async function upsertStoreListing(listing: {
@@ -456,10 +663,13 @@ async function processCategory(browser: Browser, config: CategoryConfig): Promis
     return
   }
 
-  console.log(`  Encontrados: ${rawProducts.length} productos`)
-  stats.found += rawProducts.length
+  // En modo test, limitar a los primeros 3 productos
+  const toProcess = TEST_MODE ? rawProducts.slice(0, 3) : rawProducts
 
-  for (const raw of rawProducts) {
+  console.log(`  Encontrados: ${rawProducts.length} productos${TEST_MODE ? ` (procesando ${toProcess.length} en modo test)` : ""}`)
+  stats.found += toProcess.length
+
+  for (const raw of toProcess) {
     const normalizedName = normalizeName(raw.name, config.category)
 
     if (!normalizedName) {
@@ -488,9 +698,22 @@ async function processCategory(browser: Browser, config: CategoryConfig): Promis
         console.log(
           `  [+] ${normalizedName} (${productId}) — product:${productStatus} listing:${listingStatus}`
         )
-      } else {
+      } else if (productStatus !== "needs_image") {
         stats.skipped++
         console.log(`  [=] Ya existe: ${normalizedName} (${productId})`)
+      }
+
+      // Obtener imagen si el producto es nuevo o no tiene image_url
+      if (productStatus === "inserted" || productStatus === "needs_image") {
+        const imageUrl = await fetchProductImage(browser, config.storeId, raw.url)
+        if (imageUrl) {
+          await updateProductImageUrl(productId, imageUrl)
+          stats.images_saved++
+          const truncated = imageUrl.length > 70 ? imageUrl.substring(0, 67) + "..." : imageUrl
+          console.log(`  [img] ${normalizedName}: ${truncated}`)
+        } else {
+          console.log(`  [img] Sin imagen: ${normalizedName}`)
+        }
       }
     } catch (err) {
       console.error(`  [error] DB fallo "${normalizedName}": ${(err as Error).message}`)
@@ -502,13 +725,22 @@ async function processCategory(browser: Browser, config: CategoryConfig): Promis
 async function main() {
   console.log("═══════════════════════════════════════════════════════════")
   console.log("  Catalog Scraper — Comparador Gaming Argentina")
+  if (TEST_MODE) {
+    console.log("  MODO TEST: sólo 3 productos de compragamer")
+  }
   console.log("═══════════════════════════════════════════════════════════")
-  console.log(`  Categorías a procesar: ${CATALOG_URLS.length}`)
+
+  // En modo test procesar sólo la primera URL de compragamer
+  const configs = TEST_MODE
+    ? CATALOG_URLS.filter((c) => c.storeId === "compragamer").slice(0, 1)
+    : CATALOG_URLS
+
+  console.log(`  Categorías a procesar: ${configs.length}`)
 
   const browser = await chromium.launch({ headless: true })
 
   try {
-    for (const config of CATALOG_URLS) {
+    for (const config of configs) {
       try {
         await processCategory(browser, config)
       } catch (err) {
@@ -526,6 +758,7 @@ async function main() {
   console.log(`  Productos encontrados en páginas : ${stats.found}`)
   console.log(`  Productos/listings insertados    : ${stats.inserted}`)
   console.log(`  Ya existían / sin modelo válido  : ${stats.skipped}`)
+  console.log(`  Imágenes guardadas               : ${stats.images_saved}`)
   console.log(`  Errores                          : ${stats.errors}`)
   console.log("═══════════════════════════════════════════════════════════")
 }

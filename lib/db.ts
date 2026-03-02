@@ -9,6 +9,7 @@ export type ProductRow = {
   id: string
   name: string
   category: string
+  image_url: string | null
 }
 
 export async function getProducts(): Promise<ProductRow[]> {
@@ -87,7 +88,7 @@ export async function getLatestPricesForProduct(productId: string) {
 export async function getProductsByCategory(slug: string): Promise<ProductRow[]> {
   const { data, error } = await supabase
     .from("products")
-    .select("id,name,category")
+    .select("id,name,category,image_url")
     .eq("category", slug)
 
   if (error) throw error
