@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(curl:*)",
+      "Bash(cmd:*)",
+      "Bash(powershell:*)",
+      "Bash(git:*)",
+      "Bash(npx vercel:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx tsx:*)",
+      "Bash(rm:*)"
+    ]
+  }
+}

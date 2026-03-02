@@ -1,0 +1,73 @@
+name: Scrapers
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'  # catalog-scraper: lunes a las 3am UTC
+    - cron: '0 4 * * *'  # price-scraper:   todos los días a las 4am UTC
+  workflow_dispatch:      # disparo manual desde la UI de GitHub
+
+jobs:
+  # ─── CATALOG SCRAPER (semanal) ────────────────────────────────────────────────
+  catalog-scraper:
+    name: Catalog Scraper (semanal — lunes 3am UTC)
+    runs-on: ubuntu-latest
+    # Corre en: disparo manual O cuando el cron que lo corresponde lo despierta
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 3 * * 1'
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Ejecutar catalog-scraper
+        run: |
+          echo "▶ Iniciando catalog-scraper — $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          npx tsx scripts/catalog-scraper.ts
+          echo "✓ catalog-scraper finalizado — $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+  # ─── PRICE SCRAPER (diario) ───────────────────────────────────────────────────
+  price-scraper:
+    name: Price Scraper (diario — 4am UTC)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 4 * * *'
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Ejecutar price scraper
+        run: |
+          echo "▶ Iniciando scraper de precios — $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          npx tsx scripts/scraper.ts
+          echo "✓ Scraper de precios finalizado — $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
