@@ -11,11 +11,25 @@ import {
   Tv,
   Mouse,
   ArrowRight,
+  Gamepad2,
+  Zap,
+  Server,
 } from "lucide-react"
 import { CATEGORIES } from "@/lib/categories"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { SearchBox } from "@/components/search-box"
+
+const BG_ICONS = [
+  { Icon: Monitor,      size: 64, top: "7%",  left: "3%",  rotate: -15 },
+  { Icon: Gamepad2,     size: 76, top: "9%",  left: "79%", rotate: 18  },
+  { Icon: Cpu,          size: 48, top: "28%", left: "89%", rotate: -8  },
+  { Icon: Zap,          size: 56, top: "44%", left: "4%",  rotate: 22  },
+  { Icon: Server,       size: 64, top: "67%", left: "83%", rotate: -20 },
+  { Icon: HardDrive,    size: 72, top: "76%", left: "11%", rotate: 12  },
+  { Icon: MemoryStick,  size: 44, top: "21%", left: "47%", rotate: 30  },
+  { Icon: CircuitBoard, size: 80, top: "57%", left: "54%", rotate: -10 },
+]
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "tarjetas-de-video": Monitor,
@@ -30,7 +44,26 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
+      {/* ── Decorative background icons ── */}
+      <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+        {BG_ICONS.map(({ Icon, size, top, left, rotate }, i) => (
+          <Icon
+            key={i}
+            style={{
+              position: "absolute",
+              top,
+              left,
+              width: size,
+              height: size,
+              opacity: 0.06,
+              transform: `rotate(${rotate}deg)`,
+              color: "#64748b",
+            }}
+          />
+        ))}
+      </div>
+
       <Navbar />
 
       {/* ── Hero ── */}

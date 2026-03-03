@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabase"
 type RawProduct = {
   name: string
   url: string
+  imageUrl?: string | null
 }
 
 type CategoryConfig = {
@@ -18,7 +19,7 @@ type CategoryConfig = {
 
 // ─── Test mode ────────────────────────────────────────────────────────────────
 // Ejecutar con: npx tsx scripts/catalog-scraper.ts --test
-// Sólo procesa los 3 primeros productos de compragamer para validar imágenes.
+// Procesa los 2 primeros productos de cada tienda para validar imágenes.
 
 const TEST_MODE = process.argv.includes("--test")
 
@@ -217,7 +218,8 @@ function generateId(normalizedName: string, category: string): string {
 /**
  * COMPRAGAMER
  * Usa Web Components <cgw-product-card>. El nombre está en el atributo
- * "name" del elemento o en un hijo h2/h3.
+ * "name" del elemento o en un hijo h2/h3. La imagen se extrae de los
+ * atributos del web component o del img hijo.
  */
 async function scrapeCompragamer(page: Page, config: CategoryConfig): Promise<RawProduct[]> {
   await page.goto(config.url, { waitUntil: "domcontentloaded", timeout: 90_000 })
@@ -226,38 +228,50 @@ async function scrapeCompragamer(page: Page, config: CategoryConfig): Promise<Ra
   })
 
   const base = "https://compragamer.com"
-  const products = await page.evaluate(() => {
+  const products = await page.evaluate((baseUrl: string) => {
     return Array.from(document.querySelectorAll("cgw-product-card")).map((card) => {
       const name =
         card.getAttribute("name") ??
         card.querySelector("[class*='name'],[class*='title'],h2,h3")?.textContent ??
         ""
       const anchor = card.querySelector("a[href]") ?? card.closest("a[href]")
-      return { name: name.trim(), href: anchor?.getAttribute("href") ?? "" }
+      // Intentar atributos directos del web component, luego img hijo
+      const rawImg =
+        card.getAttribute("image") ??
+        card.getAttribute("img") ??
+        card.getAttribute("thumbnail") ??
+        card.getAttribute("photo") ??
+        card.querySelector("img")?.getAttribute("src") ??
+        card.querySelector("img")?.getAttribute("data-src") ??
+        ""
+      let imgSrc = ""
+      if (rawImg) { try { imgSrc = new URL(rawImg, baseUrl).href } catch {} }
+      return { name: name.trim(), href: anchor?.getAttribute("href") ?? "", imgSrc }
     })
-  })
+  }, base)
 
   return products
     .filter((p) => p.name.length > 0 && p.href.length > 0)
     .map((p) => ({
       name: p.name,
       url: p.href.startsWith("http") ? p.href : `${base}${p.href}`,
+      imageUrl: p.imgSrc || null,
     }))
 }
 
 /**
  * MEXX
  * Server-side rendered. Cada producto está en div.productos con un <a href="*.html">.
- * El texto del link es el nombre del producto.
- * Selector: a[href*='/productos-rubro/'][href$='.html']
- * Se desduplicará por href (imagen + título comparten el mismo link).
+ * El texto del link es el nombre del producto. La imagen se extrae del img
+ * dentro del mismo contenedor de cada card.
  */
 async function scrapeMexx(page: Page, config: CategoryConfig): Promise<RawProduct[]> {
   await page.goto(config.url, { waitUntil: "networkidle", timeout: 90_000 })
 
   const products = await page.evaluate(() => {
+    const origin = window.location.origin
     const seen = new Set<string>()
-    const results: { name: string; href: string }[] = []
+    const results: { name: string; href: string; imgSrc: string }[] = []
 
     const anchors = Array.from(
       document.querySelectorAll("a[href*='/productos-rubro/'][href$='.html']")
@@ -269,26 +283,33 @@ async function scrapeMexx(page: Page, config: CategoryConfig): Promise<RawProduc
       const name = a.textContent?.trim().replace(/\s+/g, " ") ?? ""
       if (name.length > 4) {
         seen.add(href)
-        results.push({ name, href })
+        const card = a.closest("div, li, article, section")
+        const img = card?.querySelector("img")
+        const rawSrc = img?.getAttribute("src") || img?.getAttribute("data-src") || ""
+        let imgSrc = ""
+        if (rawSrc) { try { imgSrc = new URL(rawSrc, origin).href } catch {} }
+        results.push({ name, href, imgSrc })
       }
     }
     return results
   })
 
-  return products.map((p) => ({ name: p.name, url: p.href }))
+  return products.map((p) => ({ name: p.name, url: p.href, imageUrl: p.imgSrc || null }))
 }
 
 /**
  * FULLHARD
  * Server-side rendered. Links de productos en a[href*='/prod/'].
  * El texto del link incluye el nombre + precio; se limpia eliminando el precio.
+ * La imagen se extrae del img dentro del mismo contenedor de cada card.
  */
 async function scrapeFullhard(page: Page, config: CategoryConfig): Promise<RawProduct[]> {
   await page.goto(config.url, { waitUntil: "networkidle", timeout: 90_000 })
 
   const products = await page.evaluate(() => {
+    const origin = window.location.origin
     const seen = new Set<string>()
-    const results: { name: string; href: string }[] = []
+    const results: { name: string; href: string; imgSrc: string }[] = []
 
     const anchors = Array.from(
       document.querySelectorAll("a[href*='/prod/']")
@@ -305,13 +326,18 @@ async function scrapeFullhard(page: Page, config: CategoryConfig): Promise<RawPr
       const name = rawText.replace(/\s*\$\s*[\d.,]+.*$/, "").trim()
 
       if (name.length > 4) {
-        results.push({ name, href })
+        const card = a.closest("div, li, article")
+        const img = card?.querySelector("img")
+        const rawSrc = img?.getAttribute("src") || img?.getAttribute("data-src") || ""
+        let imgSrc = ""
+        if (rawSrc) { try { imgSrc = new URL(rawSrc, origin).href } catch {} }
+        results.push({ name, href, imgSrc })
       }
     }
     return results
   })
 
-  return products.map((p) => ({ name: p.name, url: p.href }))
+  return products.map((p) => ({ name: p.name, url: p.href, imageUrl: p.imgSrc || null }))
 }
 
 /**
@@ -319,6 +345,7 @@ async function scrapeFullhard(page: Page, config: CategoryConfig): Promise<RawPr
  * Renderiza la grilla via JS. Links de productos en a[href*='/Producto/'][href*='ITEM='].
  * El nombre del producto está codificado en el slug de la URL (entre /Producto/ e /ITEM=).
  * El texto del link es solo "VER MAS", por eso se extrae del slug.
+ * La imagen se extrae del img dentro del mismo contenedor de cada card.
  *
  * URL ejemplo: /Producto/Placa-de-Video-Gigabyte-Rx-7600-GAMING-OC-8GB-GDDR6/ITEM=13714/maximus.aspx
  */
@@ -328,8 +355,9 @@ async function scrapeMaximus(page: Page, config: CategoryConfig): Promise<RawPro
   await page.waitForTimeout(2000)
 
   const products = await page.evaluate(() => {
+    const origin = window.location.origin
     const seen = new Set<string>()
-    const results: { name: string; href: string }[] = []
+    const results: { name: string; href: string; imgSrc: string }[] = []
 
     const anchors = Array.from(
       document.querySelectorAll("a[href*='/Producto/'][href*='ITEM=']")
@@ -346,13 +374,18 @@ async function scrapeMaximus(page: Page, config: CategoryConfig): Promise<RawPro
 
       const name = match[1].replace(/-/g, " ").trim()
       if (name.length > 4) {
-        results.push({ name, href })
+        const card = a.closest("div, li, article, td")
+        const img = card?.querySelector("img[src]")
+        const rawSrc = img?.getAttribute("src") || img?.getAttribute("data-src") || ""
+        let imgSrc = ""
+        if (rawSrc) { try { imgSrc = new URL(rawSrc, origin).href } catch {} }
+        results.push({ name, href, imgSrc })
       }
     }
     return results
   })
 
-  return products.map((p) => ({ name: p.name, url: p.href }))
+  return products.map((p) => ({ name: p.name, url: p.href, imageUrl: p.imgSrc || null }))
 }
 
 /**
@@ -421,75 +454,9 @@ async function scrapeCategory(browser: Browser, config: CategoryConfig): Promise
 // ─── Image extraction ─────────────────────────────────────────────────────────
 
 /**
- * Selectores CSS por tienda para la imagen principal del producto.
- * Se prueban en orden; se usa el primero que retorne una URL válida.
- */
-const IMAGE_SELECTORS: Record<string, string[]> = {
-  compragamer: [
-    // Web Components — Playwright los penetra automáticamente con locator()
-    "cgw-product-gallery img",
-    "cgw-product-detail img",
-    "cgw-gallery img",
-    ".product-gallery img",
-    "img[class*='product']",
-    "picture img",
-  ],
-  mexx: [
-    "img#imgprincipal",
-    ".foto-producto img",
-    ".product-foto img",
-    ".detalle-producto img",
-    "img.img-fluid[src*='productos']",
-    "img.img-fluid[src*='upload']",
-  ],
-  fullhard: [
-    "img.product-image",
-    ".product-img img",
-    ".product__img img",
-    "img[src*='/prod/']",
-    ".gallery img:first-child",
-    "img[src*='productos']",
-  ],
-  maximusgaming: [
-    "img#imgProducto",
-    "img[id*='Producto']",
-    "img[id*='img']",
-    ".product-detail img",
-    "img[class*='product']",
-    "img[src*='Producto']",
-  ],
-  venex: [
-    "img.product-image",
-    ".product-detail-image img",
-    ".product-gallery img",
-    "img[src*='product']",
-    "img[class*='main']",
-    "img[src*='upload']",
-  ],
-}
-
-/** Convierte una URL relativa en absoluta usando la URL base del producto. */
-function toAbsoluteUrl(src: string, base: string): string | null {
-  if (!src) return null
-  try {
-    return new URL(src, base).href
-  } catch {
-    return null
-  }
-}
-
-/** Descarta imágenes que claramente no son del producto. */
-function isValidProductImage(src: string): boolean {
-  if (!src || src.startsWith("data:")) return false
-  if (/\.(svg|gif)(\?|$)/i.test(src)) return false
-  if (/placeholder|logo|icon|pixel|spinner|tracking|banner|stat|blank/i.test(src)) return false
-  return true
-}
-
-/**
- * Visita la página del producto y extrae la URL de su imagen principal.
- * Crea una página nueva (sin bloqueo de imágenes) para obtener los src attributes.
- * Retorna null si no encuentra ninguna imagen válida.
+ * Visita la página del producto y extrae la URL de imagen desde los meta tags
+ * og:image o twitter:image. Es más rápido y confiable que buscar elementos img.
+ * Retorna null si ningún meta tag está presente o si hay timeout.
  */
 async function fetchProductImage(
   browser: Browser,
@@ -498,12 +465,10 @@ async function fetchProductImage(
 ): Promise<string | null> {
   const page = await browser.newPage()
 
-  // No bloquear imágenes en páginas de detalle: algunos sitios sólo
-  // populan img.src tras la carga (lazy loading nativo o IntersectionObserver).
-  // Sí bloqueamos media pesada y fuentes para ir más rápido.
+  // Bloquear recursos pesados: sólo necesitamos el HTML para leer meta tags
   await page.route("**/*", (route) => {
     const type = route.request().resourceType()
-    if (["media", "font"].includes(type)) {
+    if (["image", "media", "font", "stylesheet"].includes(type)) {
       route.abort()
     } else {
       route.continue()
@@ -511,80 +476,38 @@ async function fetchProductImage(
   })
 
   try {
-    const waitUntil = ["compragamer", "maximusgaming"].includes(storeId)
-      ? "networkidle"
-      : "domcontentloaded"
+    await page.goto(productUrl, { waitUntil: "domcontentloaded", timeout: 15_000 })
 
-    await page.goto(productUrl, { waitUntil, timeout: 35_000 })
+    const imageUrl = await page.evaluate(() => {
+      // 1. og:image
+      const ogImage = document
+        .querySelector('meta[property="og:image"]')
+        ?.getAttribute("content")
+      if (ogImage) return ogImage
 
-    // Maximus necesita un poco más de tiempo para hidratar la imagen
-    if (storeId === "maximusgaming") {
-      await page.waitForTimeout(1500)
-    }
+      // 2. twitter:image (acepta tanto name= como property=)
+      const twitterImage =
+        document.querySelector('meta[name="twitter:image"]')?.getAttribute("content") ??
+        document.querySelector('meta[property="twitter:image"]')?.getAttribute("content")
+      if (twitterImage) return twitterImage
 
-    const selectors = IMAGE_SELECTORS[storeId] ?? []
-
-    // 1. Probar selectores específicos de la tienda
-    //    Playwright's locator() penetra Shadow DOM automáticamente (útil para Compragamer)
-    for (const selector of selectors) {
-      try {
-        const loc = page.locator(selector).first()
-        const src =
-          (await loc.getAttribute("src")) ??
-          (await loc.getAttribute("data-src")) ??
-          (await loc.getAttribute("data-lazy-src")) ??
-          (await loc.getAttribute("data-original"))
-
-        if (src && isValidProductImage(src)) {
-          const abs = toAbsoluteUrl(src, productUrl)
-          if (abs) return abs
-        }
-      } catch {
-        // El selector no existió en esta página; continuar
-      }
-    }
-
-    // 2. Fallback: recorrer todo el DOM (incluyendo Shadow DOM) buscando
-    //    la primera imagen que parezca de producto (URL con dígitos o palabras clave)
-    const fallback = await page.evaluate((baseUrl: string) => {
-      // Función recursiva que penetra Shadow DOM
-      function collectImages(root: Element | ShadowRoot): string[] {
-        const imgs: string[] = []
-        for (const el of Array.from(root.querySelectorAll("img"))) {
-          const src =
-            el.getAttribute("src") ||
-            el.getAttribute("data-src") ||
-            el.getAttribute("data-lazy-src") ||
-            el.getAttribute("data-original") ||
-            ""
-          if (src) imgs.push(src)
-        }
-        for (const el of Array.from(root.querySelectorAll("*"))) {
-          if ((el as HTMLElement & { shadowRoot: ShadowRoot | null }).shadowRoot) {
-            imgs.push(...collectImages((el as HTMLElement & { shadowRoot: ShadowRoot }).shadowRoot))
-          }
-        }
-        return imgs
-      }
-
-      const allSrcs = collectImages(document.documentElement)
-      for (const src of allSrcs) {
-        if (!src || src.startsWith("data:")) continue
-        if (/\.(svg|gif)(\?|$)/i.test(src)) continue
-        if (/placeholder|logo|icon|pixel|spinner|tracking|banner|stat|blank/i.test(src)) continue
-        // Priorizar imágenes con dígitos en la ruta (IDs de producto) o palabras clave
-        if (/\d{3,}/.test(src) || /product|imagen|upload|img/i.test(src)) {
-          try { return new URL(src, baseUrl).href } catch { /* noop */ }
-        }
-      }
       return null
-    }, productUrl)
+    })
 
-    return fallback ?? null
-  } catch (err) {
-    console.warn(
-      `  [img] Error visitando ${productUrl}: ${(err as Error).message.substring(0, 80)}`
-    )
+    if (!imageUrl) return null
+
+    // Compragamer usa una imagen genérica del sitio como og:image — descartarla
+    if (storeId === "compragamer" && /meta_banner|assets\/img/i.test(imageUrl)) {
+      return null
+    }
+
+    try {
+      return new URL(imageUrl, productUrl).href
+    } catch {
+      return null
+    }
+  } catch {
+    // Timeout u otro error: retornar null sin marcar error
     return null
   } finally {
     await page.close()
@@ -663,8 +586,8 @@ async function processCategory(browser: Browser, config: CategoryConfig): Promis
     return
   }
 
-  // En modo test, limitar a los primeros 3 productos
-  const toProcess = TEST_MODE ? rawProducts.slice(0, 3) : rawProducts
+  // En modo test, limitar a los primeros 2 productos
+  const toProcess = TEST_MODE ? rawProducts.slice(0, 2) : rawProducts
 
   console.log(`  Encontrados: ${rawProducts.length} productos${TEST_MODE ? ` (procesando ${toProcess.length} en modo test)` : ""}`)
   stats.found += toProcess.length
@@ -700,18 +623,29 @@ async function processCategory(browser: Browser, config: CategoryConfig): Promis
         )
       } else if (productStatus !== "needs_image") {
         stats.skipped++
-        console.log(`  [=] Ya existe: ${normalizedName} (${productId})`)
+        if (!TEST_MODE) console.log(`  [=] Ya existe: ${normalizedName} (${productId})`)
       }
 
-      // Obtener imagen si el producto es nuevo o no tiene image_url
-      if (productStatus === "inserted" || productStatus === "needs_image") {
-        const imageUrl = await fetchProductImage(browser, config.storeId, raw.url)
-        if (imageUrl) {
+      // Imagen: desde el listado (ya en raw.imageUrl) para todas las tiendas excepto Venex.
+      // Venex no tiene imagen en el listado → se obtiene via og:image de la página de producto.
+      const needsImage = TEST_MODE || productStatus === "inserted" || productStatus === "needs_image"
+      if (needsImage) {
+        const imageUrl = config.storeId === "venex"
+          ? await fetchProductImage(browser, config.storeId, raw.url)
+          : raw.imageUrl ?? null
+
+        if (TEST_MODE) {
+          const display = imageUrl ?? "sin imagen"
+          console.log(`  [test] tienda=${config.storeId} | producto="${normalizedName}" | imagen=${display}`)
+        }
+        if (imageUrl && (productStatus === "inserted" || productStatus === "needs_image")) {
           await updateProductImageUrl(productId, imageUrl)
           stats.images_saved++
-          const truncated = imageUrl.length > 70 ? imageUrl.substring(0, 67) + "..." : imageUrl
-          console.log(`  [img] ${normalizedName}: ${truncated}`)
-        } else {
+          if (!TEST_MODE) {
+            const truncated = imageUrl.length > 70 ? imageUrl.substring(0, 67) + "..." : imageUrl
+            console.log(`  [img] ${normalizedName}: ${truncated}`)
+          }
+        } else if (!imageUrl && !TEST_MODE) {
           console.log(`  [img] Sin imagen: ${normalizedName}`)
         }
       }
@@ -726,13 +660,16 @@ async function main() {
   console.log("═══════════════════════════════════════════════════════════")
   console.log("  Catalog Scraper — Comparador Gaming Argentina")
   if (TEST_MODE) {
-    console.log("  MODO TEST: sólo 3 productos de compragamer")
+    console.log("  MODO TEST: 2 productos por tienda (todas las tiendas)")
   }
   console.log("═══════════════════════════════════════════════════════════")
 
-  // En modo test procesar sólo la primera URL de compragamer
+  // En modo test: una URL por tienda (la primera de cada storeId)
   const configs = TEST_MODE
-    ? CATALOG_URLS.filter((c) => c.storeId === "compragamer").slice(0, 1)
+    ? (() => {
+        const seen = new Set<string>()
+        return CATALOG_URLS.filter((c) => !seen.has(c.storeId) && !!seen.add(c.storeId))
+      })()
     : CATALOG_URLS
 
   console.log(`  Categorías a procesar: ${configs.length}`)
