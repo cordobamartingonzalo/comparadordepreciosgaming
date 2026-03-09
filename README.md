@@ -182,12 +182,14 @@ Archivo: `.github/workflows/scrapers.yml`
 | Job | Schedule | Descripción |
 |---|---|---|
 | `catalog-scraper` | Lunes 3am UTC | Actualiza catálogo de productos e imágenes |
+| `image-scraper` | Lunes (tras catalog-scraper) | Busca imágenes faltantes vía SerpAPI |
 | `price-scraper` | Diario 4am UTC | Actualiza precios de todos los productos |
 
 ### Secrets requeridos en GitHub
 ```
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
+SERPAPI_KEY
 ```
 
 ### Secuencia de instalación en cada job
