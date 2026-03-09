@@ -31,7 +31,10 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Instalar Playwright Chromium
+      - name: Instalar módulo npm de Playwright
+        run: npm install playwright
+
+      - name: Instalar Playwright Chromium y dependencias del sistema
         run: npx playwright install chromium --with-deps
 
       - name: Ejecutar catalog-scraper
@@ -63,7 +66,10 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Instalar Playwright Chromium
+      - name: Instalar módulo npm de Playwright
+        run: npm install playwright
+
+      - name: Instalar Playwright Chromium y dependencias del sistema
         run: npx playwright install chromium --with-deps
 
       - name: Ejecutar price scraper
