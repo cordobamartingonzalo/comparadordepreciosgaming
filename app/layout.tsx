@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Share_Tech_Mono, Rajdhani } from "next/font/google";
+import { GoogleAnalytics } from "next/third-parties/google";
 import "./globals.css";
 
 const rajdhani = Rajdhani({
@@ -56,6 +57,7 @@ export default function RootLayout({
         className={`${rajdhani.variable} ${shareTechMono.variable} font-sans antialiased`}
       >
         {children}
+        <GoogleAnalytics gaId="G-V5DJZ6MEF1" />
       </body>
     </html>
   );
