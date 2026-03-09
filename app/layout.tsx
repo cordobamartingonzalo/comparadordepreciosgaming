@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Share_Tech_Mono, Rajdhani } from "next/font/google";
-import { GoogleAnalytics } from "next/third-parties/google";
+import Script from "next/script";
 import "./globals.css";
 
 const rajdhani = Rajdhani({
@@ -57,7 +57,18 @@ export default function RootLayout({
         className={`${rajdhani.variable} ${shareTechMono.variable} font-sans antialiased`}
       >
         {children}
-        <GoogleAnalytics gaId="G-V5DJZ6MEF1" />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-V5DJZ6MEF1"
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-V5DJZ6MEF1');
+          `}
+        </Script>
       </body>
     </html>
   );
