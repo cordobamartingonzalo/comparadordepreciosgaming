@@ -94,6 +94,40 @@ const CATALOG_URLS: CategoryConfig[] = [
 
 // ─── Name normalization ───────────────────────────────────────────────────────
 
+const STORAGE_BRANDS: Array<{ pattern: RegExp; name: string }> = [
+  { pattern: /\bsamsung\b/i,                  name: "Samsung"       },
+  { pattern: /\bkingston\b/i,                 name: "Kingston"      },
+  { pattern: /\bWD\b|\bwestern\s+digital\b/i, name: "WD"            },
+  { pattern: /\bseagate\b/i,                  name: "Seagate"       },
+  { pattern: /\bcrucial\b/i,                  name: "Crucial"       },
+  { pattern: /\bpatriot\b/i,                  name: "Patriot"       },
+  { pattern: /\bPNY\b/i,                      name: "PNY"           },
+  { pattern: /\bhiksemi\b/i,                  name: "Hiksemi"       },
+  { pattern: /\bverbatim\b/i,                 name: "Verbatim"      },
+  { pattern: /\bsilicon\s+power\b/i,          name: "Silicon Power" },
+  { pattern: /\blexar\b/i,                    name: "Lexar"         },
+  { pattern: /\badata\b/i,                    name: "Adata"         },
+  { pattern: /\bXPG\b/i,                      name: "XPG"           },
+  { pattern: /\bcorsair\b/i,                  name: "Corsair"       },
+  { pattern: /\bteam\s*group\b/i,             name: "TeamGroup"     },
+  { pattern: /\bgoodram\b/i,                  name: "Goodram"       },
+]
+
+const MONITOR_BRANDS: Array<{ pattern: RegExp; name: string }> = [
+  { pattern: /\bsamsung\b/i,   name: "Samsung"   },
+  { pattern: /\bLG\b/i,        name: "LG"        },
+  { pattern: /\bAOC\b/i,       name: "AOC"       },
+  { pattern: /\bacer\b/i,      name: "Acer"      },
+  { pattern: /\basus\b/i,      name: "Asus"      },
+  { pattern: /\bviewsonic\b/i, name: "ViewSonic" },
+  { pattern: /\bMSI\b/i,       name: "MSI"       },
+  { pattern: /\bgigabyte\b/i,  name: "Gigabyte"  },
+  { pattern: /\bbenq\b/i,      name: "BenQ"      },
+  { pattern: /\bphilips\b/i,   name: "Philips"   },
+  { pattern: /\bdell\b/i,      name: "Dell"      },
+  { pattern: /\bHP\b/i,        name: "HP"        },
+]
+
 /**
  * Normaliza el nombre del producto a un modelo genérico legible.
  * Retorna null si no se puede extraer un modelo identificable.
@@ -135,40 +169,99 @@ function normalizeName(raw: string, category: string): string | null {
     }
 
     case "memorias-ram": {
-      const cap = s.match(/\b(\d+)\s*GB\b/i)
-      const ddr = s.match(/\b(DDR[45](?:[-\s]?\d{3,4})?)\b/i)
-      if (cap && ddr) return `${cap[1]}GB ${ddr[1].toUpperCase()}`
-      return null
+      // Kit: "2x16GB", "2 x 16GB"
+      const kitMatch   = s.match(/\b(\d)\s*[xX×]\s*(\d+)\s*GB\b/i)
+      const singleCap  = s.match(/\b(\d+)\s*GB\b/i)
+      const ddrType    = s.match(/\b(DDR[45])\b/i)
+      if (!ddrType) return null
+
+      // Speed: "DDR5-6000" / "DDR4 3200" inline, or standalone "3200MHz"
+      const speedInline = s.match(/\bDDR[45][-\s](\d{3,5})\b/i)
+      const speedMHz    = s.match(/\b(\d{3,5})\s*MHz\b/i)
+      const speed = speedInline ? speedInline[1] : (speedMHz ? speedMHz[1] : null)
+
+      let capStr: string
+      if (kitMatch) {
+        capStr = `${kitMatch[1]}x${kitMatch[2]}GB`
+      } else if (singleCap) {
+        capStr = `${singleCap[1]}GB`
+      } else {
+        return null
+      }
+
+      const ddr = ddrType[1].toUpperCase()
+      return speed ? `${capStr} ${ddr} ${speed}` : `${capStr} ${ddr}`
     }
 
     case "almacenamiento": {
       const cap = s.match(/\b(\d+)\s*(TB|GB)\b/i)
       if (!cap) return null
       const size = `${cap[1]}${cap[2].toUpperCase()}`
-      // El prefijo "ssd" ya lo aporta CATEGORY_PREFIX, no repetirlo en el nombre
-      if (/hdd|disco\s+r[ií]gido/i.test(s)) return `HDD ${size}`
-      if (/nvme|m\.2|pcie/i.test(s)) return `NVMe ${size}`
-      if (/sata/i.test(s)) return `SATA ${size}`
-      return size
+
+      let type: string
+      if (/hdd|disco\s+r[ií]gido/i.test(s))  type = "HDD"
+      else if (/nvme|m\.2|pcie/i.test(s))     type = "NVMe"
+      else if (/sata/i.test(s))               type = "SATA"
+      else                                     type = ""
+
+      // Buscar marca conocida
+      let foundBrand: string | null = null
+      let brandEndIdx = 0
+      for (const { pattern, name } of STORAGE_BRANDS) {
+        const m = s.match(pattern)
+        if (m) { foundBrand = name; brandEndIdx = (m.index ?? 0) + m[0].length; break }
+      }
+
+      if (!foundBrand) {
+        // Sin marca conocida: formato compacto actual
+        return type ? `${type} ${size}` : size
+      }
+
+      // Extraer modelo: texto tras la marca, hasta la capacidad, limpiando stop words
+      const afterBrand = s.substring(brandEndIdx).trimStart()
+      const model = afterBrand
+        .replace(/\b\d+\s*(TB|GB)\b.*$/i, "")
+        .replace(/\b(ssd|nvme|m\.2|sata|hdd|pcie|internal|desktop|laptop|disco|s[oó]lido|unidad|drive|disk)\b/gi, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim()
+        .split(/\s+/).filter(Boolean).slice(0, 3).join(" ")
+
+      const parts: string[] = [foundBrand]
+      if (model) parts.push(model)
+      parts.push(size)
+      if (type) parts.push(type)
+      return parts.join(" ")
     }
 
     case "placas-madre": {
-      // Chipsets: B760M, A520M, B650E, X670E, Z790, H610M, H510, etc.
-      // Captura letra + 2-3 dígitos + sufijo de form factor opcional (M, E, I, P, etc.)
-      // usando \b al inicio y permitiendo que el sufijo termine en límite de palabra
-      const chipset = s.match(/\b([ABXHZ]\d{2,3}[A-Z]?)\b/i)
-      if (chipset) return chipset[1].toUpperCase()
-      return null
+      // Chipsets: B760-F, B760M, X670E, B650M, Z790, H610M, etc.
+      // Captura letra + 2-3 dígitos + sufijo de form factor (M, E…) + sufijo dash opcional (-F, -I…)
+      const chipset = s.match(/\b([ABXHZ]\d{2,3}[A-Z]?(?:-[A-Z])?)\b/i)
+      if (!chipset) return null
+
+      let result = chipset[1].toUpperCase()
+
+      // Incluir "Pro" si aparece inmediatamente después (ej: "B650M Pro RS WiFi" → "B650M Pro")
+      const afterChipset = s.substring((chipset.index ?? 0) + chipset[1].length).trimStart()
+      if (/^Pro\b/i.test(afterChipset)) result += " Pro"
+
+      return result
     }
 
     case "monitores": {
-      // Tamaño: busca número de 2 dígitos en rango 17-49 (con o sin comilla)
+      // Tamaño: busca número de 2 dígitos en rango 17-49 (con o sin decimal)
       const sizeMatch = s.match(/\b(1[7-9]|[23]\d|4[0-9])(?:\.\d)?\b/)
-      // Resolución: FHD=1080p, QHD/2K=1440p, 4K/UHD=2160p
-      const resMatch = s.match(/\b(4K|QHD|2K|FHD|UHD|WQHD|WFHD)\b/i)
       if (!sizeMatch) return null
+
+      const resMatch = s.match(/\b(4K|QHD|2K|FHD|UHD|WQHD|WFHD)\b/i)
+      const hzMatch  = s.match(/\b(\d{2,3})\s*Hz\b/i)
       const res = resMatch ? ` ${resMatch[1].toUpperCase()}` : ""
-      return `Monitor ${sizeMatch[1]}"${res}`
+      const hz  = hzMatch  ? ` ${hzMatch[1]}Hz`             : ""
+
+      const brandEntry = MONITOR_BRANDS.find(({ pattern }) => pattern.test(s))
+      const prefix = brandEntry ? brandEntry.name : "Monitor"
+
+      return `${prefix} ${sizeMatch[1]}"${res}${hz}`
     }
 
     case "gabinetes": {
