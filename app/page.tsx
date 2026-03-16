@@ -36,12 +36,12 @@ export default function HomePage() {
       {/* Hero */}
       <section className="border-b border-black/8 bg-[#FEFCF7]">
         <div className="mx-auto max-w-6xl px-4 py-14 lg:px-8 lg:py-20">
-          <div className="font-mono text-[10px] tracking-widest uppercase text-[#00C88A] mb-4">
+          <div className="font-mono text-[10px] font-medium tracking-widest uppercase text-[#00C88A] mb-4">
             Argentina · Actualizado diariamente
           </div>
-          <h1 className="font-serif text-3xl text-[#1C1C1A] sm:text-4xl lg:text-5xl leading-[1.15] max-w-2xl">
+          <h1 className="font-sans text-3xl font-semibold text-[#1C1C1A] sm:text-4xl lg:text-5xl leading-[1.15] max-w-2xl tracking-tight">
             Encontrá el mejor precio<br />
-            <em className="text-[#7A7870]">para tu próxima build</em>
+            <span className="font-normal italic text-[#7A7870]">para tu próxima build</span>
           </h1>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-[#7A7870] lg:text-base">
             Comparamos precios de hardware gaming en las principales tiendas de Argentina en tiempo real.
@@ -54,14 +54,14 @@ export default function HomePage() {
       <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-10 lg:px-8 lg:py-12">
         <div className="mb-6 flex items-end justify-between">
           <div>
-            <h2 className="font-serif text-2xl text-[#1C1C1A]">
+            <h2 className="font-serif text-2xl font-semibold text-[#1C1C1A]">
               Explorar hardware
             </h2>
             <p className="mt-1 text-sm text-[#7A7870]">
               Seleccioná una categoría para comparar precios.
             </p>
           </div>
-          <span className="hidden text-xs text-[#7A7870] font-mono sm:block">
+          <span className="hidden text-xs text-[#7A7870] font-mono font-medium sm:block">
             {CATEGORIES.length} categorías
           </span>
         </div>
@@ -78,7 +78,7 @@ export default function HomePage() {
                   <span className="text-sm font-medium text-[#1C1C1A]">
                     {cat.name}
                   </span>
-                  <span className="mt-auto flex items-center gap-1 text-xs text-[#7A7870] font-mono transition-colors group-hover:text-[#00C88A]">
+                  <span className="mt-auto flex items-center gap-1 text-xs text-[#7A7870] font-mono font-medium transition-colors group-hover:text-[#00C88A]">
                     Ver productos
                     <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </span>
