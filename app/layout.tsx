@@ -1,12 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Share_Tech_Mono, Rajdhani } from "next/font/google";
+import { Instrument_Serif, Inter, Share_Tech_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
-const rajdhani = Rajdhani({
-  variable: "--font-rajdhani",
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "400",
+  style: ["normal", "italic"],
+});
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 const shareTechMono = Share_Tech_Mono({
@@ -41,7 +48,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#F5F0E8",
   width: "device-width",
   initialScale: 1,
 };
@@ -54,7 +61,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${rajdhani.variable} ${shareTechMono.variable} font-sans antialiased`}
+        className={`${instrumentSerif.variable} ${inter.variable} ${shareTechMono.variable} font-sans antialiased`}
       >
         {children}
         <Script

@@ -3,12 +3,12 @@ import Image from "next/image"
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-40 bg-[#0a0a0a] border-b border-[#22c55e]/20">
-      <div className="mx-auto flex h-20 max-w-6xl items-center gap-3 px-4 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 group">
-          <Image src="/logo.png" alt="Precios GG" width={80} height={80} />
-          <span className="font-mono text-base font-bold tracking-widest uppercase text-white group-hover:text-[#22c55e] transition-colors">
-            PRECIOS_GG
+    <header className="sticky top-0 z-40 bg-[#FEFCF7] border-b border-black/8">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 lg:px-8">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <Image src="/logo.png" alt="Precios GG" width={36} height={36} className="opacity-90" />
+          <span className="font-serif text-xl text-[#1C1C1A] group-hover:text-[#00C88A] transition-colors tracking-tight">
+            precios<span className="text-[#00C88A]">gg</span>
           </span>
         </Link>
       </div>

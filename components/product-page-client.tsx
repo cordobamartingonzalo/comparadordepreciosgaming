@@ -17,8 +17,7 @@ type ProductWithPrices = {
 }
 
 export function ProductPageClient({ productId }: { productId: string }) {
-  const [selectedProduct, setSelectedProduct] =
-    React.useState<ProductWithPrices | null>(null)
+  const [selectedProduct, setSelectedProduct] = React.useState<ProductWithPrices | null>(null)
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
@@ -26,12 +25,7 @@ export function ProductPageClient({ productId }: { productId: string }) {
       setLoading(true)
       try {
         const { product, prices } = await getLatestPricesForProduct(productId)
-        setSelectedProduct({
-          id: product.id,
-          name: product.name,
-          category: product.category,
-          prices,
-        })
+        setSelectedProduct({ id: product.id, name: product.name, category: product.category, prices })
       } catch (e) {
         console.error("Error cargando producto:", e)
         setSelectedProduct(null)
@@ -41,68 +35,49 @@ export function ProductPageClient({ productId }: { productId: string }) {
     })()
   }, [productId])
 
-  const categoryName = CATEGORIES.find(
-    (c) => c.slug === selectedProduct?.category
-  )?.name ?? selectedProduct?.category
+  const categoryName = CATEGORIES.find((c) => c.slug === selectedProduct?.category)?.name ?? selectedProduct?.category
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-
-      {/* ── Product Hero ── */}
-      <section
-        className="border-b border-border relative overflow-hidden"
-        style={{
-          background: "#f8fafc",
-          backgroundImage: "radial-gradient(circle, #22c55e1a 1px, transparent 1px)",
-          backgroundSize: "20px 20px",
-        }}
-      >
+      <section className="border-b border-black/8 bg-[#FEFCF7]">
         <div className="mx-auto max-w-6xl px-4 py-8 lg:px-8 lg:py-12">
           <Link
             href={selectedProduct ? `/categoria/${selectedProduct.category}` : "/"}
-            className="mb-4 flex items-center gap-1 text-xs font-mono tracking-widest uppercase text-foreground/60 hover:text-[#22c55e] w-fit transition-colors"
+            className="mb-5 flex items-center gap-1 text-xs font-mono tracking-widest text-[#7A7870] hover:text-[#00C88A] w-fit transition-colors"
           >
             <ChevronLeft className="size-3.5" />
-            {categoryName ? `// VOLVER A ${categoryName.toUpperCase()}` : "// VOLVER"}
+            {categoryName ? `Volver a ${categoryName}` : "Volver"}
           </Link>
           <div>
-            <div className="font-mono text-[10px] tracking-widest uppercase text-[#22c55e] mb-1">
-              // COMPARATIVA DE PRECIOS
-            </div>
-            <h2 className="text-xl font-extrabold tracking-tight text-foreground uppercase sm:text-2xl">
+            <div className="font-mono text-[10px] tracking-widest uppercase text-[#00C88A] mb-1">Comparativa de precios</div>
+            <h1 className="font-serif text-2xl text-[#1C1C1A] sm:text-3xl">
               {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="inline-block size-2 rounded-full bg-[#22c55e] animate-pulse" />
-                  CARGANDO...
+                <span className="flex items-center gap-2 text-[#7A7870]">
+                  <span className="inline-block size-2 rounded-full bg-[#00C88A] animate-pulse" />
+                  Cargando...
                 </span>
               ) : (
-                selectedProduct?.name ?? "PRODUCTO NO ENCONTRADO"
+                selectedProduct?.name ?? "Producto no encontrado"
               )}
-            </h2>
-            <p className="mt-1 text-sm text-foreground/60 font-medium">
-              Comparativa de precios en las principales tiendas de Argentina.
-            </p>
+            </h1>
+            <p className="mt-1 text-sm text-[#7A7870]">Comparativa de precios en las principales tiendas de Argentina.</p>
           </div>
         </div>
       </section>
 
-      {/* ── Comparison Table ── */}
       <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-foreground/60 font-mono">
-            <span className="inline-block size-2 rounded-full bg-[#22c55e] animate-pulse" />
-            CARGANDO PRECIOS...
+          <div className="flex items-center gap-2 text-sm text-[#7A7870] font-mono">
+            <span className="inline-block size-2 rounded-full bg-[#00C88A] animate-pulse" />
+            Cargando precios...
           </div>
         ) : selectedProduct ? (
           <ComparisonTable prices={selectedProduct.prices} />
         ) : (
-          <div className="text-sm text-foreground/60 font-medium">
-            No se encontró el producto.
-          </div>
+          <div className="text-sm text-[#7A7870]">No se encontró el producto.</div>
         )}
       </main>
-
       <Footer />
     </div>
   )

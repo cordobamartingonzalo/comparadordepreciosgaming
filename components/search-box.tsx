@@ -19,7 +19,6 @@ export function SearchBox() {
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
-  // Debounced search — fires 300 ms after the user stops typing
   React.useEffect(() => {
     const q = query.trim()
     if (q.length < 2) {
@@ -42,7 +41,6 @@ export function SearchBox() {
     return () => clearTimeout(timer)
   }, [query])
 
-  // Close dropdown on outside click
   React.useEffect(() => {
     function onMouseDown(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -70,9 +68,9 @@ export function SearchBox() {
     <div ref={containerRef} className="relative mt-6 max-w-md">
       <form
         onSubmit={handleSubmit}
-        className="flex items-center border border-[#22c55e] bg-white shadow-[0_0_16px_#22c55e20]"
+        className="flex items-center border border-black/12 bg-[#FEFCF7] rounded-md overflow-hidden focus-within:border-[#00C88A] focus-within:shadow-[0_0_0_3px_#00C88A15] transition-all"
       >
-        <div className="flex items-center px-3 text-[#22c55e]">
+        <div className="flex items-center px-3 text-[#7A7870]">
           <Search className="size-4" />
         </div>
         <input
@@ -81,30 +79,27 @@ export function SearchBox() {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Buscar producto... (ej: RTX 4060)"
-          className="flex-1 py-2.5 pr-3 text-sm font-medium bg-transparent text-foreground placeholder:text-foreground/40 outline-none font-mono"
+          className="flex-1 py-2.5 pr-3 text-sm bg-transparent text-[#1C1C1A] placeholder:text-[#7A7870]/60 outline-none"
           autoComplete="off"
         />
         <button
           type="submit"
-          className="px-3 py-2.5 bg-[#22c55e] text-[#0a0a0a] text-xs font-mono font-bold tracking-widest uppercase shrink-0"
+          className="px-4 py-2.5 bg-[#1C1C1A] text-[#F5F0E8] text-xs font-mono tracking-widest uppercase shrink-0 hover:bg-[#00C88A] hover:text-[#003D2A] transition-colors"
         >
-          {loading ? "···" : "BUSCAR"}
+          {loading ? "···" : "Buscar"}
         </button>
       </form>
 
-      {/* Results dropdown */}
       {open && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-50 bg-white border border-[#22c55e]/40 border-t-0 shadow-[0_8px_24px_#22c55e15] max-h-72 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 z-50 bg-[#FEFCF7] border border-black/10 border-t-0 rounded-b-md shadow-[0_8px_24px_rgba(0,0,0,0.08)] max-h-72 overflow-y-auto">
           {results.map((p) => (
             <button
               key={p.id}
               onClick={() => navigate(p.id)}
-              className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-[#22c55e]/5 border-b border-border last:border-b-0 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[#00C88A]/5 border-b border-black/5 last:border-b-0 transition-colors"
             >
-              <span className="text-sm font-medium text-foreground truncate pr-2">
-                {p.name}
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#22c55e] shrink-0">
+              <span className="text-sm text-[#1C1C1A] truncate pr-2">{p.name}</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#00C88A] shrink-0">
                 {getCategoryName(p.category)}
               </span>
             </button>
@@ -112,11 +107,10 @@ export function SearchBox() {
         </div>
       )}
 
-      {/* No results */}
       {showNoResults && (
-        <div className="absolute top-full left-0 right-0 z-50 bg-white border border-[#22c55e]/40 border-t-0 shadow-[0_8px_24px_#22c55e15] px-3 py-3">
-          <span className="font-mono text-xs uppercase tracking-widest text-foreground/60">
-            SIN RESULTADOS PARA "{query.trim().toUpperCase()}"
+        <div className="absolute top-full left-0 right-0 z-50 bg-[#FEFCF7] border border-black/10 border-t-0 rounded-b-md shadow-[0_8px_24px_rgba(0,0,0,0.08)] px-4 py-3">
+          <span className="font-mono text-xs text-[#7A7870]">
+            Sin resultados para "{query.trim()}"
           </span>
         </div>
       )}
