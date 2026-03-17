@@ -9,7 +9,9 @@
       "Bash(npx vercel:*)",
       "Bash(npx tsc:*)",
       "Bash(npx tsx:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(cd \"C:/Proyectos/Comparador de precios Gaming/comparador-gaming\" && npm run build 2>&1)",
+      "Bash(npm run:*)"
     ]
   }
 }

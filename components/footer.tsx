@@ -20,7 +20,6 @@ export function Footer() {
               <li>Mexx</li>
               <li>Fullhard</li>
               <li>Maximus Gaming</li>
-              <li>Venex</li>
             </ul>
           </div>
         </div>

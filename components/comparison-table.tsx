@@ -1,23 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { Badge } from "@/components/badge"
-import { Button } from "@/components/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table"
 import { Switch } from "@/components/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select"
+import type { StorePrice } from "@/lib/db"
 
-export type StorePrice = {
-  storeId: string
-  storeName: string
-  priceArs: number
-  shippingLabel?: string
-  inStock: boolean
-  updatedAtISO: string
-  url: string
-}
-
-function formatARS(value: number) {
+function formatARS(value: number | null) {
+  if (!value) return "—"
   return value.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 })
 }
 
@@ -38,17 +28,26 @@ export function ComparisonTable({ prices }: { prices: StorePrice[] }) {
   const [sort, setSort] = React.useState<SortKey>("priceAsc")
 
   const bestPrice = React.useMemo(() => {
-    const inStock = prices.filter((p) => p.inStock)
-    const pool = inStock.length ? inStock : prices
-    if (!pool.length) return null
-    return pool.reduce((min, cur) => (cur.priceArs < min.priceArs ? cur : min))
+    const inStockPrices = prices.filter((p) => p.inStock && p.priceArs)
+    if (!inStockPrices.length) return null
+    return inStockPrices.reduce((min, cur) =>
+      cur.priceArs < min.priceArs ? cur : min
+    )
   }, [prices])
 
   const filtered = React.useMemo(() => {
     const base = onlyInStock ? prices.filter((p) => p.inStock) : prices.slice()
     base.sort((a, b) => {
-      if (sort === "priceAsc") return a.priceArs - b.priceArs
-      if (sort === "priceDesc") return b.priceArs - a.priceArs
+      if (sort === "priceAsc") {
+        if (!a.priceArs) return 1
+        if (!b.priceArs) return -1
+        return a.priceArs - b.priceArs
+      }
+      if (sort === "priceDesc") {
+        if (!a.priceArs) return 1
+        if (!b.priceArs) return -1
+        return b.priceArs - a.priceArs
+      }
       return new Date(b.updatedAtISO).getTime() - new Date(a.updatedAtISO).getTime()
     })
     return base

@@ -28,11 +28,11 @@ type StoreConfig = {
 /**
  * IMPORTANTE: las keys deben coincidir EXACTAMENTE con stores.id / store_listings.store_id
  *
- * Según tu Supabase hoy son:
- * - compragamer
- * - mexx
- * - fullhard
- * - maximusgaming
+ * Stores verificadas con dump DOM real (2026-03-17):
+ * - compragamer  → Angular SPA, sin selectores de stock visibles; fallback conservador
+ * - mexx         → [itemprop="availability"] content="InStock"/"OutOfStock" ✓
+ * - fullhard     → .stock-container con texto "Stock alto…" ✓
+ * - maximusgaming → .notify-stock aparece SOLO cuando SIN STOCK ✓
  */
 const STORE_CONFIGS: Record<string, StoreConfig> = {
   compragamer: {
@@ -41,12 +41,26 @@ const STORE_CONFIGS: Record<string, StoreConfig> = {
       'span[class*="tw:text-price"]:last-child',
       "text=/\\$\\s*[0-9]/",
     ],
+    // Angular SPA: no hay selector de disponibilidad en el DOM renderizado.
+    // Solo se usan señales negativas; si ninguna matchea → fallback en stock.
+    inStockSelectors: [
+      "[class*='sin-stock']",
+      "[class*='no-disponible']",
+      ".product-availability",
+    ],
   },
   mexx: {
     priceSelectors: [
       "h2.main-price > b:not([class])",
       "h2.main-price b",
       "text=/\\$\\s*[0-9]/",
+    ],
+    // VERIFICADO: <link itemprop="availability" content="InStock"> presente en el DOM
+    // extractStock() lee el atributo content y detecta "InStock"/"OutOfStock"
+    inStockSelectors: [
+      '[itemprop="availability"]',
+      "[class*='agotado']",
+      "[class*='sin-stock']",
     ],
   },
   fullhard: {
@@ -57,6 +71,13 @@ const STORE_CONFIGS: Record<string, StoreConfig> = {
       "span.bold",
       "text=/\\$\\s*[0-9]/",
     ],
+    // VERIFICADO: .stock-container contiene "Stock alto en la web" / "Stock alto en el local"
+    // Cuando sin stock, el texto cambia a "sin stock" / "agotado" y el patrón lo detecta
+    inStockSelectors: [
+      ".stock-container",
+      "[class*='sin-stock']",
+      "[class*='agotado']",
+    ],
   },
   maximusgaming: {
     priceSelectors: [
@@ -65,32 +86,66 @@ const STORE_CONFIGS: Record<string, StoreConfig> = {
       ".value-item--full-price",
       "text=/\\$\\s*[0-9]/",
     ],
+    // ADVERTENCIA: [itemprop="availability"] en maximus.com.ar es INCORRECTO —
+    // muestra href="InStock" incluso cuando el producto no tiene stock.
+    // VERIFICADO: .notify-stock aparece ÚNICAMENTE cuando el producto está SIN STOCK.
+    // Su texto: "Este producto no se encuentra disponible en este momento."
+    // → outOfStockPattern incluye "no\s+se\s+encuentra" para capturar este caso.
+    inStockSelectors: [
+      ".notify-stock",
+      "[class*='agotado']",
+    ],
   },
 }
 
 function parsePrice(raw: string | null): number | null {
   if (!raw) return null
 
-  // Normaliza espacios y elimina todo lo que no sea dígito, punto o coma
   let cleaned = raw.replace(/\s+/g, "").replace(/[^\d.,]/g, "")
   if (!cleaned) return null
 
   const hasComma = cleaned.includes(",")
   const hasDot = cleaned.includes(".")
+  const dotCount = (cleaned.match(/\./g) ?? []).length
+  const commaCount = (cleaned.match(/,/g) ?? []).length
 
-  // Caso AR típico: 12.345,67  /  409.750  /  589.747,94
-  if (hasComma) {
-    // Coma = decimal, puntos = miles
-    cleaned = cleaned.replace(/\./g, "")
-    cleaned = cleaned.replace(",", ".")
-  } else if (hasDot) {
-    // Solo puntos: puede ser decimal real (1234.56) o miles (409.750)
-    const matchDecimal = cleaned.match(/\.(\d{1,2})$/)
-    if (!matchDecimal) cleaned = cleaned.replace(/\./g, "")
+  if (hasComma && hasDot) {
+    // Formato AR clásico: 12.345,67 o 1.234,5 — coma=decimal, punto=miles
+    cleaned = cleaned.replace(/\./g, "").replace(",", ".")
+  } else if (hasComma && !hasDot) {
+    if (commaCount === 1) {
+      const afterComma = cleaned.split(",")[1] ?? ""
+      if (afterComma.length === 3) {
+        // Separador de miles tipo europeo: 1,234 → 1234
+        cleaned = cleaned.replace(",", "")
+      } else {
+        // Decimal: 1234,56 o 1234,5
+        cleaned = cleaned.replace(",", ".")
+      }
+    } else {
+      // Múltiples comas: separadores de miles → eliminar todas
+      cleaned = cleaned.replace(/,/g, "")
+    }
+  } else if (hasDot && !hasComma) {
+    if (dotCount > 1) {
+      // Múltiples puntos = todos son separadores de miles: 1.234.567 → 1234567
+      cleaned = cleaned.replace(/\./g, "")
+    } else {
+      const afterDot = cleaned.split(".")[1] ?? ""
+      if (afterDot.length === 3) {
+        // Exactamente 3 dígitos post-punto = separador de miles: 409.750 → 409750
+        cleaned = cleaned.replace(".", "")
+      }
+      // 1 o 2 dígitos post-punto = decimal real: 1234.56 → dejar como está
+    }
   }
 
   const num = Number.parseFloat(cleaned)
-  return Number.isFinite(num) ? num : null
+
+  // Sanity check: en Argentina los precios de hardware son > $1000 ARS
+  if (!Number.isFinite(num) || num < 1000) return null
+
+  return Math.round(num)
 }
 
 async function fetchStoreListings(): Promise<StoreListingRow[]> {
@@ -133,21 +188,50 @@ async function extractStock(
 ): Promise<{ inStock: boolean; evidence?: string }> {
   if (!selectors || selectors.length === 0) return { inStock: true }
 
+  const outOfStockPattern =
+    /agotado|sin\s*stock|no\s*disponible|articulo\s*sin\s*stock|out\s*of\s*stock|sold\s*out|no\s*hay\s*stock|producto\s*no\s*disponible|no\s+se\s+encuentra/
+
   for (const selector of selectors) {
     const loc = page.locator(selector)
     if ((await loc.count()) === 0) continue
 
-    const txt = (await loc.first().textContent()) ?? ""
-    const normalized = txt.toLowerCase()
+    const el = loc.first()
 
-    if (/agotado|sin stock|no disponible|articulo sin stock/.test(normalized)) {
-      return { inStock: false, evidence: `${selector} -> ${txt.trim()}` }
+    // Caso especial: itemprop="availability" usa el atributo content
+    // Ej: <link itemprop="availability" content="OutOfStock"/>
+    const contentAttr = await el.getAttribute("content").catch(() => null)
+    if (contentAttr) {
+      const normalized = contentAttr
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+      if (
+        normalized.includes("outofstock") ||
+        normalized.includes("out_of_stock") ||
+        outOfStockPattern.test(normalized)
+      ) {
+        return { inStock: false, evidence: `${selector}[content="${contentAttr}"]` }
+      }
+      return { inStock: true, evidence: `${selector}[content="${contentAttr}"]` }
     }
 
-    return { inStock: true, evidence: `${selector} -> ${txt.trim()}` }
+    // Caso general: texto visible del elemento
+    const txt = (await el.textContent().catch(() => "")) ?? ""
+    const normalized = txt
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+
+    if (outOfStockPattern.test(normalized)) {
+      return { inStock: false, evidence: `${selector} → "${txt.trim()}"` }
+    }
+
+    // El selector matcheó y el texto no indica sin-stock → en stock
+    return { inStock: true, evidence: `${selector} → "${txt.trim()}"` }
   }
 
-  return { inStock: true }
+  // Ningún selector matcheó → fallback conservador (asumimos en stock)
+  return { inStock: true, evidence: "no selector matched" }
 }
 
 async function scrapeOneListing(browser: Browser, listing: StoreListingRow) {
@@ -165,27 +249,63 @@ async function scrapeOneListing(browser: Browser, listing: StoreListingRow) {
 
   const page = await browser.newPage()
   try {
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 })
+    const response = await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 })
 
-    const priceHit = await extractFirstParsablePrice(page, config.priceSelectors)
-    if (!priceHit) {
-      console.warn(
-        `No se encontró un precio parseable para listing ${id} (store_id=${store_id}).`
+    // Página no disponible (404, 410, 5xx, etc.) → sin stock
+    if (!response || response.status() >= 400) {
+      await insertPriceSnapshot({ listing_id: id, price_ars: 0, in_stock: false })
+      console.log(
+        `⚠ listing ${id} | store=${store_id} | ` +
+        `HTTP ${response?.status() ?? "sin respuesta"} → marcado como SIN STOCK`
       )
       return
     }
 
-    const { inStock } = await extractStock(page, config.inStockSelectors)
+    const priceHit = await extractFirstParsablePrice(page, config.priceSelectors)
+    if (!priceHit) {
+      // Sin precio = sin stock: tiendas ocultan el precio cuando el producto está agotado
+      await insertPriceSnapshot({ listing_id: id, price_ars: 0, in_stock: false })
+      console.log(
+        `⚠ listing ${id} | store=${store_id} | SIN PRECIO → marcado como SIN STOCK`
+      )
+      return
+    }
+
+    const stockResult = await extractStock(page, config.inStockSelectors)
 
     await insertPriceSnapshot({
       listing_id: id,
       price_ars: Math.round(priceHit.price),
-      in_stock: inStock,
+      in_stock: stockResult.inStock,
     })
 
     console.log(
-      `OK listing ${id}. price_ars=${priceHit.price} (selector=${priceHit.matchedSelector}) in_stock=${inStock}`
+      `✓ listing ${id} | store=${store_id} | ` +
+      `precio=${Math.round(priceHit.price).toLocaleString("es-AR")} | ` +
+      `stock=${stockResult.inStock ? "EN STOCK" : "SIN STOCK"} | ` +
+      `evidencia=${stockResult.evidence ?? "N/A"} | ` +
+      `selector_precio=${priceHit.matchedSelector}`
     )
+  } catch (err) {
+    const isTimeout =
+      err instanceof Error &&
+      (err.message.includes("timeout") || err.message.includes("Timeout"))
+
+    if (isTimeout) {
+      try {
+        await insertPriceSnapshot({ listing_id: id, price_ars: 0, in_stock: false })
+        console.log(
+          `⚠ listing ${id} | store=${store_id} | TIMEOUT → marcado como SIN STOCK`
+        )
+      } catch (insertErr) {
+        console.error(`Error insertando sin-stock por timeout en listing ${id}:`, insertErr)
+      }
+    } else {
+      console.error(
+        `Error en listing ${id} (product_id=${product_id}, store_id=${store_id}):`,
+        err
+      )
+    }
   } finally {
     await page.close()
   }
@@ -203,14 +323,14 @@ async function main() {
   const browser = await chromium.launch({ headless: true })
   try {
     for (const listing of listings) {
-      try {
-        await scrapeOneListing(browser, listing)
-      } catch (err) {
+      // Los errores esperados (timeout, HTTP error, sin precio) ya se manejan
+      // dentro de scrapeOneListing(). Este catch solo captura fallos inesperados.
+      await scrapeOneListing(browser, listing).catch((err) => {
         console.error(
-          `Error en listing ${listing.id} (product_id=${listing.product_id}, store_id=${listing.store_id}):`,
+          `Error inesperado en listing ${listing.id} (store_id=${listing.store_id}):`,
           err
         )
-      }
+      })
     }
   } finally {
     console.log("Cerrando navegador de Playwright...")

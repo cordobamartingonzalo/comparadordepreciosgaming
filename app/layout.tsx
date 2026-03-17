@@ -25,13 +25,13 @@ const shareTechMono = Share_Tech_Mono({
 export const metadata: Metadata = {
   title: "Precios GG | Comparador de precios gaming en Argentina",
   description:
-    "Compará precios de placas de video, procesadores, memorias RAM y más en las principales tiendas gaming de Argentina. Encontrá la mejor oferta en Compragamer, Mexx, Fullhard, Maximus y Venex.",
+    "Compará precios de placas de video, procesadores, memorias RAM y más en las principales tiendas gaming de Argentina. Encontrá la mejor oferta en Compragamer, Mexx, Fullhard y Maximus.",
   keywords:
     "comparador precios gaming argentina, placas de video precio, procesadores precio argentina, rtx 4060 precio argentina",
   openGraph: {
     title: "Precios GG | Comparador de precios gaming en Argentina",
     description:
-      "Compará precios de placas de video, procesadores, memorias RAM y más en las principales tiendas gaming de Argentina. Encontrá la mejor oferta en Compragamer, Mexx, Fullhard, Maximus y Venex.",
+      "Compará precios de placas de video, procesadores, memorias RAM y más en las principales tiendas gaming de Argentina. Encontrá la mejor oferta en Compragamer, Mexx, Fullhard y Maximus.",
     url: "https://preciosgg.com.ar",
     type: "website",
   },

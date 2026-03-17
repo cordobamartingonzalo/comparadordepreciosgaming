@@ -1,12 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import * as React from "react"
 import {
   ChevronLeft, Monitor, Cpu, HardDrive, MemoryStick,
   CircuitBoard, Box, Tv, Mouse, ArrowRight, PackageOpen,
 } from "lucide-react"
-import { getProductsByCategory, type ProductRow } from "@/lib/db"
+import { type ProductRow } from "@/lib/db"
 import { CATEGORIES } from "@/lib/categories"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -22,29 +21,15 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   perifericos: Mouse,
 }
 
-export function CategoryPageClient({ params }: { params: Promise<{ slug: string }> }) {
-  const [slug, setSlug] = React.useState<string>("")
-  const [products, setProducts] = React.useState<ProductRow[]>([])
-  const [loading, setLoading] = React.useState(true)
+type Props = {
+  slug: string
+  products: ProductRow[]
+}
 
+export function CategoryPageClient({ slug, products }: Props) {
   const category = CATEGORIES.find((c) => c.slug === slug)
   const categoryName = category?.name ?? slug
   const Icon = CATEGORY_ICONS[slug] ?? Box
-
-  React.useEffect(() => {
-    ;(async () => {
-      const { slug: resolvedSlug } = await params
-      setSlug(resolvedSlug)
-      try {
-        const data = await getProductsByCategory(resolvedSlug)
-        setProducts(data)
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [params])
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -69,12 +54,7 @@ export function CategoryPageClient({ params }: { params: Promise<{ slug: string 
       </section>
 
       <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-[#7A7870] font-mono">
-            <span className="inline-block size-2 rounded-full bg-[#00C88A] animate-pulse" />
-            Cargando productos...
-          </div>
-        ) : products.length === 0 ? (
+        {products.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
             <PackageOpen className="size-10 text-[#7A7870]/30" />
             <p className="text-sm text-[#7A7870]">No hay productos disponibles en esta categoría aún.</p>
